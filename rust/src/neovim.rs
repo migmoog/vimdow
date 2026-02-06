@@ -93,6 +93,7 @@ impl NeovimProcess {
     {
         self.send_msgpack(&(0, self.msgid, method, params));
     }
+
 }
 
 #[derive(GodotClass)]
@@ -109,6 +110,14 @@ impl NeovimClient {
 
     #[signal]
     fn neovim_response(msgid: i32, error: Variant, result: Variant);
+
+    #[func]
+    fn kill_process(&mut self) {
+        if self.nvim_process.is_some() {
+            godot_warn!("killed neovim process");
+        }
+        self.nvim_process = None;
+    }
 
     #[func]
     fn spawn(&mut self, program: String) -> bool {
@@ -137,38 +146,45 @@ impl NeovimClient {
         );
         true
     }
+
+    #[func]
+    fn is_running(&self) -> bool {
+        self.nvim_process.is_some()
+    }
 }
 
 #[godot_api]
 impl INode for NeovimClient {
     fn process(&mut self, _delta: f32) {
-        if let Some(Some(value)) = self.nvim_process.as_ref().map(|p| p.check()) {
-            if let Value::Array(rpc) = value {
-                let msgtype = rpc.get(0).and_then(|v| v.as_u64()).unwrap_or(99);
-                match msgtype {
-                    2 => {
-                        if let [Value::String(method), Value::Array(params)] = &rpc[1..3] {
-                            let params = rpc_array_to_vararray(params.clone());
-                            self.signals()
-                                .neovim_event()
-                                .emit(method.to_string(), &params);
-                        }
+        if let Some(Some(Value::Array(rpc))) = self.nvim_process.as_ref().map(|p| p.check()) {
+            let msgtype = rpc.get(0).and_then(|v| v.as_u64()).unwrap_or(99);
+            match msgtype {
+                2 => {
+                    if let [Value::String(method), Value::Array(params)] = &rpc[1..3] {
+                        let params = rpc_array_to_vararray(params.clone());
+                        self.signals()
+                            .neovim_event()
+                            .emit(method.to_owned().into_str().unwrap(), &params);
                     }
-                    1 => {
-                        if let [Value::Integer(msgid), error, result] = &rpc[1..4] {
-                            self.signals().neovim_response().emit(
-                                msgid.as_i64().unwrap() as i32,
-                                &rmpv_to_godot(error.clone()),
-                                &rmpv_to_godot(result.clone()),
-                            );
-                        }
-                    }
-                    0 => godot_warn!("Haven't implemented requests yet"),
-                    _ => godot_error!("Got a non-existent message type: {msgtype}"),
                 }
+                1 => {
+                    if let [Value::Integer(msgid), error, result] = &rpc[1..4] {
+                        self.signals().neovim_response().emit(
+                            msgid.as_i64().unwrap() as i32,
+                            &rmpv_to_godot(error.to_owned()),
+                            &rmpv_to_godot(result.to_owned()),
+                        );
+                    }
+                }
+                0 => godot_warn!("Haven't implemented requests yet"),
+                _ => godot_error!("Got a non-existent message type: {msgtype}"),
             }
         }
     }
 
     fn unhandled_key_input(&mut self, _event: Gd<InputEvent>) {}
+
+    fn exit_tree(&mut self) {
+        self.kill_process();
+    }
 }

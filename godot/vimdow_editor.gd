@@ -6,18 +6,12 @@ extends Control
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	client.spawn(path_to_nvim)
-	await get_tree().create_timer(.5).timeout
+	await get_tree().create_timer(1.5).timeout
+	assert(client.is_running())
 	client.attach(500, 200)
 
-
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
-	pass
-
-
 func _on_neovim_client_neovim_event(method: String, params: Array) -> void:
-	print(method)
-	print(params)
+	print("%s: %s" % [method, str(params)])
 
 
 func _on_neovim_client_neovim_response(msgid: int, error: Variant, result: Variant) -> void:

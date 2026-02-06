@@ -12,7 +12,6 @@ grow_vertical = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 script = ExtResource("1_k517p")
-path_to_nvim = "/home/jgordon/CompiledUtils/neovim/build/bin/nvim"
 
 [node name="PanelContainer" type="PanelContainer" parent="." unique_id=710125553]
 layout_mode = 0
@@ -21,6 +20,8 @@ offset_bottom = 645.0
 
 [node name="CodeEdit" type="CodeEdit" parent="PanelContainer" unique_id=1319237807]
 layout_mode = 2
+editable = false
+wrap_mode = 1
 gutters_draw_line_numbers = true
 
 [node name="NeovimClient" type="NeovimClient" parent="." unique_id=1734104499]
