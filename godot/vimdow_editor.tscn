@@ -1,0 +1,29 @@
+[gd_scene format=3 uid="uid://yboe2mkngo4w"]
+
+[ext_resource type="Script" uid="uid://cinru25nrys1q" path="res://vimdow_editor.gd" id="1_k517p"]
+
+[node name="VimdowEditor" type="Control" unique_id=2111148339]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("1_k517p")
+path_to_nvim = "/home/jgordon/CompiledUtils/neovim/build/bin/nvim"
+
+[node name="PanelContainer" type="PanelContainer" parent="." unique_id=710125553]
+layout_mode = 0
+offset_right = 1148.0
+offset_bottom = 645.0
+
+[node name="CodeEdit" type="CodeEdit" parent="PanelContainer" unique_id=1319237807]
+layout_mode = 2
+gutters_draw_line_numbers = true
+
+[node name="NeovimClient" type="NeovimClient" parent="." unique_id=1734104499]
+
+[connection signal="neovim_event" from="NeovimClient" to="." method="_on_neovim_client_neovim_event"]
+[connection signal="neovim_response" from="NeovimClient" to="." method="_on_neovim_client_neovim_response"]

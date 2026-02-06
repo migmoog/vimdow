@@ -1,0 +1,15 @@
+# Rust ignores
+rust/target
+
+# Godot 4+ specific ignores
+godot/.godot/
+godot/.nomedia
+
+# Godot-specific ignores
+godot/.import/
+godot/export.cfg
+godot/export_credentials.cfg
+godot/*.tmp
+
+# Imported translations (automatically generated from CSV files)
+godot/*.translation
