@@ -39,7 +39,9 @@ func flush():
 				call(event_name, e)
 		elif OS.is_debug_build():
 			_redraw_events.store_line(event_name)
-	if OS.is_debug_build(): _redraw_events.flush()
+	if OS.is_debug_build(): 
+		_redraw_events.store_line("###FLUSHED###")
+		_redraw_events.flush()
 #endregion
 
 #region NEOVIM_IMPL_TRACKER
