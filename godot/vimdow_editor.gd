@@ -42,13 +42,26 @@ func flush():
 	if OS.is_debug_build(): 
 		_redraw_events.store_line("###FLUSHED###")
 		_redraw_events.flush()
+
+func option_set(opts: Array):
+	var opt_name: String = opts.pop_front()
+	if has_method(opt_name):
+		call(opt_name, opts)
+	elif OS.is_debug_build():
+		_option_set.store_line(opt_name + " " + str(opts))
+	if OS.is_debug_build():
+		_option_set.store_line("")
+		_option_set.flush()
+
 #endregion
 
 #region NEOVIM_IMPL_TRACKER
 var _redraw_events
+var _option_set
 func _initialize_todos():
 	const TODOS_PATH = "res://../nvim_todos"
 	if not DirAccess.dir_exists_absolute(TODOS_PATH):
 		DirAccess.make_dir_absolute(TODOS_PATH)
 	_redraw_events  = FileAccess.open(TODOS_PATH.path_join("redraw_events.txt"), FileAccess.WRITE)
+	_option_set = FileAccess.open(TODOS_PATH.path_join("option_set.txt"), FileAccess.WRITE)
 #endregion
