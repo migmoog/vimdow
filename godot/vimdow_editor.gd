@@ -1,5 +1,7 @@
 extends Control
 
+var cwd: String
+
 @export_file_path() var path_to_nvim: String = "/usr/bin/nvim"
 @onready var client = $NeovimClient
 
@@ -9,7 +11,7 @@ func _ready() -> void:
 		_initialize_todos()
 	
 	client.spawn(path_to_nvim)
-	await get_tree().create_timer(1.5).timeout
+	await get_tree().create_timer(.5).timeout
 	assert(client.is_running())
 	client.attach(500, 200)
 
@@ -36,24 +38,24 @@ func flush():
 		var event_name: String = event.pop_front()
 		if has_method(event_name):
 			for e in event:
-				call(event_name, e)
+				callv(event_name, e)
 		elif OS.is_debug_build():
 			_redraw_events.store_line(event_name)
 	if OS.is_debug_build(): 
 		_redraw_events.store_line("###FLUSHED###")
 		_redraw_events.flush()
+		_log_options()
 
-func option_set(opts: Array):
-	var opt_name: String = opts.pop_front()
-	if has_method(opt_name):
-		call(opt_name, opts)
-	elif OS.is_debug_build():
-		_option_set.store_line(opt_name + " " + str(opts))
-	if OS.is_debug_build():
-		_option_set.store_line("")
-		_option_set.flush()
+func chdir(dir: String):
+	cwd = dir
 
-#endregion
+#region OPTION_SET
+var options := {}
+func option_set(opt_name: String, value: Variant):
+	options[opt_name] = value
+#endregion OPTION_SET
+
+#endregion REDRAW_EVENTS
 
 #region NEOVIM_IMPL_TRACKER
 var _redraw_events
@@ -63,5 +65,14 @@ func _initialize_todos():
 	if not DirAccess.dir_exists_absolute(TODOS_PATH):
 		DirAccess.make_dir_absolute(TODOS_PATH)
 	_redraw_events  = FileAccess.open(TODOS_PATH.path_join("redraw_events.txt"), FileAccess.WRITE)
-	_option_set = FileAccess.open(TODOS_PATH.path_join("option_set.txt"), FileAccess.WRITE)
+	_option_set = FileAccess.open(TODOS_PATH.path_join("option_set.json"), FileAccess.WRITE)
+
+func _log_options():
+	_option_set.store_string(JSON.stringify(
+		options, 
+		"\t", 
+		false, 
+		true
+	) + ",\n\n")
+	_option_set.flush()
 #endregion
