@@ -13,3 +13,6 @@ godot/*.tmp
 
 # Imported translations (automatically generated from CSV files)
 godot/*.translation
+
+# List of unimplemented events and protocols in nvim
+nvim_todos

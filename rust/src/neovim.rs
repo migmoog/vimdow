@@ -40,14 +40,8 @@ impl NeovimProcess {
         let to_handle = thread::spawn(move || {
             loop {
                 if let Ok(buf) = recv_in_process.recv() {
-                    let l = buf.len();
-                    match stdin.write(&buf[..]) {
-                        Ok(n) => {
-                            godot_error!("Only wrote {n}/{} bytes to neovim", l)
-                        }
-                        Err(e) => {
-                            godot_error!("Couldn't write to neovim: {e}");
-                        }
+                    if let Err(e) = stdin.write_all(&buf[..]) {
+                        godot_error!("Couldn't write to neovim: {e}");
                     }
                 }
             }
@@ -93,7 +87,6 @@ impl NeovimProcess {
     {
         self.send_msgpack(&(0, self.msgid, method, params));
     }
-
 }
 
 #[derive(GodotClass)]
@@ -156,7 +149,16 @@ impl NeovimClient {
 #[godot_api]
 impl INode for NeovimClient {
     fn process(&mut self, _delta: f32) {
-        if let Some(Some(Value::Array(rpc))) = self.nvim_process.as_ref().map(|p| p.check()) {
+        let mut messages = vec![];
+        while let Some(Some(v)) = self.nvim_process.as_ref().map(|p| p.check()) {
+            if let Value::Array(rpc) = v {
+                messages.push(rpc);
+            } else {
+                godot_error!("not an array: {v:?}");
+            }
+        }
+
+        for rpc in messages {
             let msgtype = rpc.get(0).and_then(|v| v.as_u64()).unwrap_or(99);
             match msgtype {
                 2 => {
