@@ -28,7 +28,7 @@ func _ready() -> void:
 func get_editor_grid_size() -> Vector2i:
 	var font_size = theme.get_font_size("font_size", "CodeEdit")
 	var char_size: Vector2 = theme.get_font("font", "CodeEdit").get_char_size(ord(" "), font_size)
-	return Vector2i((size/char_size).floor())
+	return Vector2i((wm.size/char_size).floor())
 
 func _on_neovim_client_neovim_event(method: String, params: Array) -> void:
 	if method == "redraw":
@@ -72,7 +72,7 @@ func grid_resize(grid: int, width: int, height: int):
 	if wm.get_child_count() == 0:
 		var new_win := VimdowWindow.new()
 		wm.add_child(new_win)
-		new_win.set_size(width, height)
+		new_win.set_grid_size(width, height)
 	else:
 		push_warning("Resizing existing grid here!")
 
