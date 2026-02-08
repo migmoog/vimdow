@@ -18,10 +18,17 @@ struct VimdowWindow {
     id: Window,
     #[export(multiline)]
     text: GString,
+
+    cursor: Option<Vector2i>,
 }
 
 #[godot_api]
 impl VimdowWindow {
+    #[func]
+    fn set_cursor(&mut self, x: i32, y: i32) {
+        self.cursor = Some(Vector2i { x, y });
+    }
+
     #[func]
     fn get_line_count(&self) -> i32 {
         self.text.to_string().lines().map(|_| 1).sum()
@@ -97,13 +104,23 @@ impl IControl for VimdowWindow {
             .get_theme_font_size_ex("font_size")
             .theme_type("CodeEdit")
             .done();
-        let font_height = font.get_height();
+        let char_size = font.get_char_size(' '.into(), font_size);
         let text = self.text.to_string();
         for (i, line) in text.lines().enumerate() {
             self.base_mut()
-                .draw_string_ex(&font, Vector2::new(0.0, (i + 1) as f32 * font_height), line)
+                .draw_string_ex(&font, Vector2::new(0.0, (i + 1) as f32 * char_size.y), line)
                 .font_size(font_size)
                 .done();
+
+            if let Some(cur) = &self.cursor
+                && cur.y == i as i32
+            {
+                let pos = Vector2 {
+                    x: cur.x as f32 * char_size.x,
+                    y: (cur.y + 1) as f32 * char_size.y,
+                };
+                self.base_mut().draw_char(&font, pos, "█");
+            }
         }
     }
 }

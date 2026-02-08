@@ -101,6 +101,11 @@ func grid_clear(grid: int):
 	for w: VimdowWindow in wm.get_children():
 		w.clear()
 
+func grid_cursor_goto(grid: int, row: int, col: int):
+	_grid_assert(grid)
+	var win: VimdowWindow = wm.get_child(0)
+	win.set_cursor(col, row)
+
 #region OPTION_SET
 var options := {}
 func option_set(opt_name: String, value: Variant):
