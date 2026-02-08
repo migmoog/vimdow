@@ -5,6 +5,8 @@ extends Control
 # NOTE: an option in the future might be to have an "ext_multigrid" toggle that 
 # will split the windows into their own separate windows. So these variables are unchanged for now
 var grid_index: int = 1
+var grid_width: int
+var grid_height: int
 
 var cwd: String
 
@@ -26,7 +28,7 @@ func _ready() -> void:
 func get_editor_grid_size() -> Vector2i:
 	var font_size = theme.get_font_size("font_size", "CodeEdit")
 	var char_size: Vector2 = theme.get_font("font", "CodeEdit").get_char_size(ord(" "), font_size)
-	return Vector2i(size/char_size)
+	return Vector2i((size/char_size).floor())
 
 func _on_neovim_client_neovim_event(method: String, params: Array) -> void:
 	if method == "redraw":
@@ -65,6 +67,8 @@ func chdir(dir: String):
 
 func grid_resize(grid: int, width: int, height: int):
 	_grid_assert(grid)
+	grid_width = width
+	grid_height = height
 	if wm.get_child_count() == 0:
 		var new_win := VimdowWindow.new()
 		wm.add_child(new_win)
@@ -76,7 +80,7 @@ var _last_hl_id: int
 func grid_line(grid: int, row: int, col_start: int, cells: Array, wrap: bool):
 	_grid_assert(grid)
 	var win: VimdowWindow = wm.get_child(0)
-	var line = win.get_line(row).substr(0, col_start+1)
+	var line = win.get_line(row).substr(0, col_start)
 	for cell in cells:
 		# TODO: implement highlights
 		match cell:
@@ -88,6 +92,8 @@ func grid_line(grid: int, row: int, col_start: int, cells: Array, wrap: bool):
 				_last_hl_id = hl_id
 			[var text]:
 				line += text
+	while line.length() < grid_width: 
+		line += " "
 	win.set_line(row, line)
 
 func grid_clear(grid: int):

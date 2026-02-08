@@ -1,4 +1,4 @@
-use godot::{classes::CodeEdit, prelude::*};
+use godot::{classes::{CodeEdit, ICodeEdit}, prelude::*};
 
 mod err;
 mod neovim;
@@ -40,6 +40,13 @@ impl VimdowWindow {
                 .collect();
             self.base_mut().set_line(i, &new_line);
         }
+    }
+}
+
+#[godot_api]
+impl ICodeEdit for VimdowWindow {
+    fn ready(&mut self) {
+        self.base_mut().set_editable(false);
     }
 }
 

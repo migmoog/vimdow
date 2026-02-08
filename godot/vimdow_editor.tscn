@@ -15,10 +15,10 @@ size_flags_vertical = 3
 theme = ExtResource("1_gh56k")
 script = ExtResource("1_k517p")
 
-[node name="WindowManager" type="PanelContainer" parent="." unique_id=710125553]
+[node name="WindowManager" type="PanelContainer" parent="." unique_id=1346084106]
 layout_mode = 0
-offset_right = 1148.0
-offset_bottom = 645.0
+offset_right = 1152.0
+offset_bottom = 648.0
 
 [node name="NeovimClient" type="NeovimClient" parent="." unique_id=1734104499]
 
