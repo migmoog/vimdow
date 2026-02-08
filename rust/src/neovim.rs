@@ -11,6 +11,8 @@ use std::thread::{self, JoinHandle};
 mod ext_types;
 mod msgpack;
 
+pub use ext_types::{Buffer, Window, Tabpage};
+
 use crate::err::VimdowError;
 use crate::neovim::msgpack::rpc_array_to_vararray;
 use msgpack::rmpv_to_godot;
@@ -133,6 +135,8 @@ impl NeovimClient {
             return false;
         };
 
+        // NOTE: in the future, may want to add a "multigrid" option if users want to
+        // edit buffers in separate windows.
         np.request(
             "nvim_ui_attach",
             &(width, height, HashMap::from([("ext_linegrid", true)])),

@@ -1,15 +1,15 @@
 use godot::prelude::*;
 // Neovim Ext Types
 
-#[derive(GodotConvert)]
+#[derive(GodotConvert, Default, Var)]
 #[godot(transparent)]
 pub struct Window(i64);
 
-#[derive(GodotConvert)]
+#[derive(GodotConvert, Default, Var)]
 #[godot(transparent)]
 pub struct Buffer(i64);
 
-#[derive(GodotConvert)]
+#[derive(GodotConvert, Default, Var)]
 #[godot(transparent)]
 pub struct Tabpage(i64);
 

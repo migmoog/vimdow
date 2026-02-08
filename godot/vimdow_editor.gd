@@ -1,9 +1,16 @@
 extends Control
 
+## Neovim ui docs state that there is only ever one 
+## grid index passed to grid events, 1 the global grid
+# NOTE: an option in the future might be to have an "ext_multigrid" toggle that 
+# will split the windows into their own separate windows. So these variables are unchanged for now
+var grid_index: int = 1
+
 var cwd: String
 
 @export_file_path() var path_to_nvim: String = "/usr/bin/nvim"
 @onready var client = $NeovimClient
+@onready var wm = $WindowManager
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
@@ -13,8 +20,13 @@ func _ready() -> void:
 	client.spawn(path_to_nvim)
 	await get_tree().create_timer(.5).timeout
 	assert(client.is_running())
-	client.attach(500, 200)
+	var initial_size := get_editor_grid_size()
+	client.attach(initial_size.x, initial_size.y)
 
+func get_editor_grid_size() -> Vector2i:
+	var font_size = theme.get_font_size("font_size", "CodeEdit")
+	var char_size: Vector2 = theme.get_font("font", "CodeEdit").get_char_size(ord(" "), font_size)
+	return Vector2i(size/char_size)
 
 func _on_neovim_client_neovim_event(method: String, params: Array) -> void:
 	if method == "redraw":
@@ -29,6 +41,8 @@ func _on_neovim_client_neovim_event(method: String, params: Array) -> void:
 func _on_neovim_client_neovim_response(msgid: int, error: Variant, result: Variant) -> void:
 	print("msgid: %d, error: %s, result: %s" % [msgid, str(error), str(result)])
 
+func _grid_assert(grid: int):
+	assert(grid == grid_index, "Shouldn't receive an index for a different grid")
 
 #region REDRAW_EVENTS
 var redraw_batch: Array = []
@@ -48,6 +62,38 @@ func flush():
 
 func chdir(dir: String):
 	cwd = dir
+
+func grid_resize(grid: int, width: int, height: int):
+	_grid_assert(grid)
+	if wm.get_child_count() == 0:
+		var new_win := VimdowWindow.new()
+		wm.add_child(new_win)
+		new_win.set_size(width, height)
+	else:
+		push_warning("Resizing existing grid here!")
+
+var _last_hl_id: int
+func grid_line(grid: int, row: int, col_start: int, cells: Array, wrap: bool):
+	_grid_assert(grid)
+	var win: VimdowWindow = wm.get_child(0)
+	var line = win.get_line(row).substr(0, col_start+1)
+	for cell in cells:
+		# TODO: implement highlights
+		match cell:
+			[var text, var hl_id, var repeat]:
+				line += text.repeat(repeat)
+				_last_hl_id = hl_id
+			[var text, var hl_id]:
+				line += text
+				_last_hl_id = hl_id
+			[var text]:
+				line += text
+	win.set_line(row, line)
+
+func grid_clear(grid: int):
+	_grid_assert(grid)
+	for w: VimdowWindow in wm.get_children():
+		w.clear()
 
 #region OPTION_SET
 var options := {}

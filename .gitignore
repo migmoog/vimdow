@@ -16,3 +16,6 @@ godot/*.translation
 
 # List of unimplemented events and protocols in nvim
 nvim_todos
+
+# IDE workflow
+Session.vim
