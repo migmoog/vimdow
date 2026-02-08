@@ -1,3 +1,6 @@
 [gd_resource type="Theme" format=3 uid="uid://o6govy1hbpq2"]
 
+[ext_resource type="FontFile" uid="uid://b62h820uc86yo" path="res://FiraCodeNerdFont-Regular.ttf" id="1_okpfo"]
+
 [resource]
+CodeEdit/fonts/font = ExtResource("1_okpfo")
