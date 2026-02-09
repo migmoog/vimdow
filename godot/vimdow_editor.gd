@@ -1,4 +1,4 @@
-extends Control
+extends MarginContainer
 
 ## Neovim ui docs state that there is only ever one 
 ## grid index passed to grid events, 1 the global grid
@@ -20,7 +20,9 @@ func _ready() -> void:
 		_initialize_todos()
 	
 	client.spawn(path_to_nvim)
-	await get_tree().create_timer(.5).timeout
+	setup_ui()
+
+func setup_ui():
 	assert(client.is_running())
 	var initial_size := get_editor_grid_size()
 	client.attach(initial_size.x, initial_size.y)
@@ -133,3 +135,12 @@ func _log_options():
 	) + ",\n\n")
 	_option_set.flush()
 #endregion
+
+
+func _on_window_manager_resized() -> void:
+	if not is_node_ready():
+		return
+	print("root size: %s" % str(get_tree().root.size))
+	print("self size: %s" % str(self.size))
+	print("wm.size: %s" % str(wm.size))
+	setup_ui()

@@ -3,8 +3,7 @@
 [ext_resource type="Theme" uid="uid://o6govy1hbpq2" path="res://vimdow_theme.tres" id="1_gh56k"]
 [ext_resource type="Script" uid="uid://cinru25nrys1q" path="res://vimdow_editor.gd" id="1_k517p"]
 
-[node name="VimdowEditor" type="Control" unique_id=2111148339]
-layout_mode = 3
+[node name="VimdowEditor" type="MarginContainer" unique_id=909240016]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -16,11 +15,10 @@ theme = ExtResource("1_gh56k")
 script = ExtResource("1_k517p")
 
 [node name="WindowManager" type="PanelContainer" parent="." unique_id=1346084106]
-layout_mode = 0
-offset_right = 1152.0
-offset_bottom = 648.0
+layout_mode = 2
 
 [node name="NeovimClient" type="NeovimClient" parent="." unique_id=1734104499]
 
+[connection signal="resized" from="WindowManager" to="." method="_on_window_manager_resized"]
 [connection signal="neovim_event" from="NeovimClient" to="." method="_on_neovim_client_neovim_event"]
 [connection signal="neovim_response" from="NeovimClient" to="." method="_on_neovim_client_neovim_response"]
