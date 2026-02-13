@@ -1,5 +1,6 @@
 use godot::prelude::*;
 use serde::Serialize;
+use std::collections::HashSet;
 use std::io::Write;
 use std::process::{Child, Command, Stdio};
 use std::sync::mpsc;
@@ -18,7 +19,9 @@ pub struct NeovimProcess {
     from: mpsc::Receiver<Value>,
     // the sender that writes encoded mspack values
     to: mpsc::Sender<Vec<u8>>,
+
     msgid: u32,
+    pending_requests: HashSet<u32>,
 }
 
 impl NeovimProcess {
@@ -61,11 +64,25 @@ impl NeovimProcess {
             _from_handle: from_handle,
             _to_handle: to_handle,
             msgid: 0,
+            pending_requests: HashSet::new()
         })
     }
 
-    pub fn check(&self) -> Option<Value> {
-        self.from.try_recv().ok()
+    pub fn check(&mut self) -> Option<Value> {
+        let v = self.from.try_recv().ok()?;
+
+        if let Value::Array(ref vec) = v
+            && let [Value::Integer(msgtype), Value::Integer(msgid), ..] = vec.as_slice()
+            && let Some(1) = msgtype.as_i64()
+        {
+            let msgid = msgid.as_u64().unwrap() as u32;
+            assert!(
+                self.pending_requests.remove(&msgid),
+                "No msgid ({msgid}), exists"
+            );
+        }
+
+        Some(v)
     }
 
     fn send_msgpack<T>(&self, args: &T)
@@ -76,20 +93,27 @@ impl NeovimProcess {
         self.to.send(buf).expect("Couldn't send to write thread");
     }
 
-    pub fn request<T>(&self, method: &str, params: &T)
+    pub fn request<T>(&mut self, method: &str, params: &T)
     where
         T: Serialize + Sized,
     {
-        self.send_msgpack(&(0, self.msgid, method, params));
+        let ogid = self.msgid;
+        self.send_msgpack(&(0, ogid, method, params));
+        self.msgid += 1;
+        self.pending_requests.insert(ogid);
     }
 
-    pub fn var_request(&mut self, method: &str, params: VarArray) {
-        let rpc = varray![0, self.msgid, method, params];
+    pub fn var_request(&mut self, method: &str, params: VarArray) -> i32 {
+        let ogid = self.msgid;
+        let rpc = varray![0, ogid, method, params];
         let val = godot_to_rmpv(rpc.to_variant());
         let mut buf = Vec::new();
         rmpv::encode::write_value(&mut buf, &val).expect("Couldn't serialize value");
         self.msgid += 1;
+        self.pending_requests.insert(ogid);
 
         self.to.send(buf).expect("Couldn't send serialized variant");
+
+        ogid as i32
     }
 }

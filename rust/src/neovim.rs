@@ -52,7 +52,7 @@ impl NeovimClient {
 
     #[func]
     fn attach(&mut self, width: i32, height: i32) -> bool {
-        let Some(ref np) = self.nvim_process else {
+        let Some(ref mut np) = self.nvim_process else {
             godot_error!("Tried attaching to process while none was running");
             return false;
         };
@@ -67,11 +67,11 @@ impl NeovimClient {
     }
 
     #[func]
-    fn request(&mut self, method: String, params: VarArray) {
+    fn request(&mut self, method: String, params: VarArray) -> i32 {
         let Some(ref mut np) = self.nvim_process else {
-            return;
+            return -1;
         };
-        np.var_request(&method, params);
+        np.var_request(&method, params)
     }
 
     #[func]
@@ -84,7 +84,7 @@ impl NeovimClient {
 impl INode for NeovimClient {
     fn process(&mut self, _delta: f32) {
         let mut messages = vec![];
-        while let Some(Some(v)) = self.nvim_process.as_ref().map(|p| p.check()) {
+        while let Some(Some(v)) = self.nvim_process.as_mut().map(|p| p.check()) {
             if let Value::Array(rpc) = v {
                 messages.push(rpc);
             } else {
