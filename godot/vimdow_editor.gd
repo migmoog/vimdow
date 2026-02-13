@@ -20,9 +20,12 @@ func _ready() -> void:
 		_initialize_todos()
 	
 	client.spawn(path_to_nvim)
+	await get_tree().create_timer(.25).timeout
 	setup_ui()
 
+var _attached := false
 func setup_ui():
+	assert(not _attached)
 	assert(client.is_running())
 	var initial_size := get_editor_grid_size()
 	client.attach(initial_size.x, initial_size.y)
@@ -76,7 +79,8 @@ func grid_resize(grid: int, width: int, height: int):
 		wm.add_child(new_win)
 		new_win.set_grid_size(width, height)
 	else:
-		push_warning("Resizing existing grid here!")
+		var win: VimdowWindow = wm.get_child(0)
+		win.set_grid_size(width, height)
 
 var _last_hl_id: int
 func grid_line(grid: int, row: int, col_start: int, cells: Array, wrap: bool):
@@ -138,9 +142,7 @@ func _log_options():
 
 
 func _on_window_manager_resized() -> void:
-	if not is_node_ready():
+	if not is_node_ready() and _attached:
 		return
-	print("root size: %s" % str(get_tree().root.size))
-	print("self size: %s" % str(self.size))
-	print("wm.size: %s" % str(wm.size))
-	setup_ui()
+	var s := get_editor_grid_size()
+	client.request("nvim_ui_try_resize", [s.x, s.y])
