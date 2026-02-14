@@ -9,26 +9,38 @@ mod neovim;
 pub use neovim::NeovimClient;
 use neovim::Window;
 
+#[derive(GodotConvert, Var, Export, Default)]
+#[godot(via = GString)]
+#[allow(non_camel_case_types)]
+enum CursorShape {
+    #[default]
+    block,
+    vertical,
+    horizontal,
+}
+
 #[derive(GodotClass)]
 #[class(init, base=Control)]
 // Funny name
 struct VimdowWindow {
     base: Base<Control>,
+
     #[var]
     id: Window,
+
     #[export(multiline)]
     text: GString,
 
-    cursor: Option<Vector2i>,
+    #[export]
+    cursor_shape: CursorShape,
+
+    #[init(val = Vector2i {x: -1, y: -1})]
+    #[var]
+    cursor: Vector2i,
 }
 
 #[godot_api]
 impl VimdowWindow {
-    #[func]
-    fn set_cursor(&mut self, x: i32, y: i32) {
-        self.cursor = Some(Vector2i { x, y });
-    }
-
     #[func]
     fn get_line_count(&self) -> i32 {
         self.text.to_string().lines().map(|_| 1).sum()
@@ -112,14 +124,58 @@ impl IControl for VimdowWindow {
                 .font_size(font_size)
                 .done();
 
-            if let Some(cur) = &self.cursor
-                && cur.y == i as i32
-            {
-                let pos = Vector2 {
-                    x: cur.x as f32 * char_size.x,
-                    y: (cur.y + 1) as f32 * char_size.y,
+            let width = 2.0;
+            if self.cursor.x >= 0 && self.cursor.y >= 0 {
+                let position = Vector2 {
+                    x: self.cursor.x as f32 * char_size.x,
+                    y: (self.cursor.y as f32+0.1) * char_size.y,
                 };
-                self.base_mut().draw_char(&font, pos, "█");
+
+                match self.cursor_shape {
+                    CursorShape::block => self
+                        .base_mut()
+                        .draw_rect_ex(
+                            Rect2 {
+                                position,
+                                size: char_size,
+                            },
+                            Color::WHITE,
+                        )
+                        .filled(false)
+                        .width(width)
+                        .done(),
+                    CursorShape::vertical => self
+                        .base_mut()
+                        .draw_line_ex(
+                            Vector2 {
+                                x: position.x + char_size.x,
+                                y: position.y,
+                            },
+                            Vector2 {
+                                x: position.x + char_size.x,
+                                y: position.y + char_size.y,
+                            },
+                            Color::WHITE,
+                        )
+                        .width(width)
+                        .done(),
+
+                    CursorShape::horizontal => self
+                        .base_mut()
+                        .draw_line_ex(
+                            Vector2 {
+                                x: position.x,
+                                y: position.y + char_size.y,
+                            },
+                            Vector2 {
+                                x: position.x + char_size.x,
+                                y: position.y + char_size.y,
+                            },
+                            Color::WHITE,
+                        )
+                        .done(),
+                };
+                // self.base_mut().draw_char(&font, pos, cursor_char);
             }
         }
     }

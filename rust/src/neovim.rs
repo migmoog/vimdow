@@ -1,4 +1,5 @@
-use godot::classes::InputEvent;
+use godot::classes::{InputEvent, InputEventKey};
+use godot::global::Key;
 use godot::prelude::*;
 use rmpv::Value;
 use std::collections::HashMap;
@@ -13,11 +14,77 @@ use msgpack::rmpv_to_godot;
 mod process;
 use process::NeovimProcess;
 
+fn keyevent_to_nvim_symbol(key_event: Gd<InputEventKey>) -> String {
+    match key_event.get_keycode() {
+        Key::BACKSPACE => "<BS>".into(),
+        Key::TAB => "<Tab>".into(),
+        Key::ENTER => "<CR>".into(),
+        Key::ESCAPE => "<Esc>".into(),
+        Key::SPACE => "<Space>".into(),
+        Key::DELETE => "<Del>".into(),
+        Key::UP => "<Up>".into(),
+        Key::LEFT => "<Left>".into(),
+        Key::RIGHT => "<Right>".into(),
+        Key::DOWN => "<Down>".into(),
+
+        code if Key::F1.ord() <= code.ord() && code.ord() <= Key::F35.ord() => {
+            format!("<F{}>", code.ord() - Key::F1.ord() + 1)
+        }
+
+        Key::PAGEUP => "<PageUp>".into(),
+        Key::PAGEDOWN => "<PageDown>".into(),
+
+        _ => GString::chr(key_event.get_unicode() as i64).to_string(), // TODO: keypad keys
+    }
+}
+
+// for info on the modifiers: ":h keycodes"
+enum Modifier {
+    Shift,
+    Ctrl,
+    Alt,
+    Super,
+    // no meta key, not sure where it's needed
+}
+
+impl Modifier {
+    fn modify(&self, event: Gd<InputEventKey>) -> String {
+        let chr = char::from_u32(event.get_unicode()).expect("Not a parseable char");
+        match self {
+            Modifier::Shift => {
+                format!("<S-{}>", chr)
+            }
+            Modifier::Ctrl => {
+                format!("<C-{}>", chr)
+            }
+            Modifier::Alt => {
+                format!("<A-{}>", chr)
+            }
+            Modifier::Super => {
+                format!("<D-{}>", chr)
+            }
+        }
+    }
+
+    fn from_keycode(code: Key) -> Option<Self> {
+        match code {
+            Key::CTRL => Some(Self::Ctrl),
+            Key::ALT => Some(Self::Alt),
+            Key::SHIFT => Some(Self::Shift),
+            Key::META => Some(Self::Super),
+            _ => None,
+        }
+    }
+}
+
 #[derive(GodotClass)]
 #[class(base=Node, init)]
 pub struct NeovimClient {
     base: Base<Node>,
     nvim_process: Option<NeovimProcess>,
+
+    // any key that has something attached to it (ex: <C-...>)
+    modifier: Option<Modifier>,
 }
 
 #[godot_api]
@@ -118,7 +185,30 @@ impl INode for NeovimClient {
         }
     }
 
-    fn unhandled_key_input(&mut self, _event: Gd<InputEvent>) {}
+    fn unhandled_key_input(&mut self, event: Gd<InputEvent>) {
+        let (true, Ok(key_event)) = (self.nvim_process.is_some(), event.try_cast::<InputEventKey>())
+        else {
+            return;
+        };
+
+        if let Some(modifier) = Modifier::from_keycode(key_event.get_keycode()) {
+            self.modifier = match self.modifier {
+                Some(_) if key_event.is_released() => None,
+                None if key_event.is_pressed() => Some(modifier),
+                _ => None,
+            };
+            return;
+        }
+
+        if key_event.is_pressed() {
+            let input = match &self.modifier {
+                Some(m) => m.modify(key_event),
+                None => keyevent_to_nvim_symbol(key_event),
+            };
+
+            self.request("nvim_input".to_string(), varray![input]);
+        }
+    }
 
     fn exit_tree(&mut self) {
         self.kill_process();

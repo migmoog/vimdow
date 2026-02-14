@@ -112,7 +112,11 @@ impl NeovimProcess {
         self.msgid += 1;
         self.pending_requests.insert(ogid);
 
-        self.to.send(buf).expect("Couldn't send serialized variant");
+        // self.to.send(buf).expect("Couldn't send serialized variant");
+        match self.to.send(buf) {
+            Err(se) => {godot_error!("{se}")}
+            _ => {}
+        }
 
         ogid as i32
     }

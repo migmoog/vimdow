@@ -28,10 +28,11 @@ func _ready() -> void:
 	await get_tree().create_timer(.5).timeout
 	setup_ui()
 
-func _unhandled_key_input(event: InputEvent) -> void:
-	if not _attached or not event is InputEventKey:
-		return
-	client.request("nvim_input", [OS.get_keycode_string(event.keycode)])
+#func _unhandled_key_input(event: InputEvent) -> void:
+	#if not _attached or not event is InputEventKey:
+		#return
+	#if event.is_pressed():
+		#client.request("nvim_input", [String.chr(event.unicode)])
 
 var _attached := false
 func setup_ui():
@@ -81,6 +82,21 @@ func flush():
 		_redraw_events.flush()
 		_log_options()
 
+var mode_info: Array
+func mode_info_set(cursor_style_enabled: bool, mode_info: Array):
+	# can't really see a case where it'd need to be false
+	assert(cursor_style_enabled)
+	self.mode_info = mode_info
+
+var mode: String
+var mode_idx: int
+func mode_change(mode: String, mode_idx: int):
+	self.mode = mode
+	self.mode_idx = mode_idx
+	
+	var m: Dictionary = mode_info[self.mode_idx]
+	for w: VimdowWindow in wm.get_children():
+		w.cursor_shape = m.get("cursor_shape", w.cursor_shape)
 func set_title(title: String):
 	if _is_standalone():
 		get_tree().root.title = title
@@ -133,7 +149,8 @@ func grid_clear(grid: int):
 func grid_cursor_goto(grid: int, row: int, col: int):
 	_grid_assert(grid)
 	var win: VimdowWindow = wm.get_child(0)
-	win.set_cursor(col, row)
+	win.cursor.x = col
+	win.cursor.y = row
 
 #region OPTION_SET
 var options := {}
