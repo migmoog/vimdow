@@ -19,7 +19,7 @@ func _ready() -> void:
 	if OS.is_debug_build():
 		_initialize_todos()
 	
-	if get_parent() is Window:
+	if _is_standalone():
 		var r = get_tree().root
 		assert(r.size.x == size.x and r.size.y == size.y)
 		r.size_changed.connect(_on_standalone_resized)
@@ -28,12 +28,21 @@ func _ready() -> void:
 	await get_tree().create_timer(.1).timeout
 	setup_ui()
 
+func _unhandled_key_input(event: InputEvent) -> void:
+	if not _attached or not event is InputEventKey:
+		return
+	client.request("nvim_input", [OS.get_keycode_string(event.keycode)])
+
 var _attached := false
 func setup_ui():
 	assert(not _attached)
 	assert(client.is_running())
 	var initial_size := get_editor_grid_size(wm.size)
 	client.attach(initial_size.x, initial_size.y)
+
+# checks if vimdow is the standalone app or the editor plugin
+func _is_standalone() -> bool:
+	return get_parent() is Window
 
 func get_editor_grid_size(s: Vector2) -> Vector2i:
 	var font_size = theme.get_font_size("font_size", "CodeEdit")
@@ -71,6 +80,15 @@ func flush():
 		_redraw_events.store_line("###FLUSHED###")
 		_redraw_events.flush()
 		_log_options()
+
+func set_title(title: String):
+	if _is_standalone():
+		get_tree().root.title = title
+
+func set_icon(icon: String):
+	if _is_standalone():
+		var r = get_tree().root
+		r.title = r.title.insert(0, icon + " ")
 
 func chdir(dir: String):
 	cwd = dir
@@ -156,8 +174,5 @@ func _on_window_manager_resized() -> void:
 func _on_standalone_resized():
 	if not (is_node_ready() or _attached):
 		return
-	# FIXME: scales to the innards of the window
-	print_debug("Original size: ", size)
 	size = get_tree().root.size
-	print_debug("Window size: ", size)
 #endregion
