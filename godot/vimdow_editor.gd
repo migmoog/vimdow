@@ -19,21 +19,26 @@ func _ready() -> void:
 	if OS.is_debug_build():
 		_initialize_todos()
 	
+	if get_parent() is Window:
+		var r = get_tree().root
+		assert(r.size.x == size.x and r.size.y == size.y)
+		r.size_changed.connect(_on_standalone_resized)
+	
 	client.spawn(path_to_nvim)
-	await get_tree().create_timer(.25).timeout
+	await get_tree().create_timer(.1).timeout
 	setup_ui()
 
 var _attached := false
 func setup_ui():
 	assert(not _attached)
 	assert(client.is_running())
-	var initial_size := get_editor_grid_size()
+	var initial_size := get_editor_grid_size(wm.size)
 	client.attach(initial_size.x, initial_size.y)
 
-func get_editor_grid_size() -> Vector2i:
+func get_editor_grid_size(s: Vector2) -> Vector2i:
 	var font_size = theme.get_font_size("font_size", "CodeEdit")
 	var char_size: Vector2 = theme.get_font("font", "CodeEdit").get_char_size(ord(" "), font_size)
-	return Vector2i((wm.size/char_size).floor())
+	return Vector2i((s/char_size).floor())
 
 func _on_neovim_client_neovim_event(method: String, params: Array) -> void:
 	if method == "redraw":
@@ -142,7 +147,17 @@ func _log_options():
 
 
 func _on_window_manager_resized() -> void:
-	if not is_node_ready() and _attached:
+	if not (is_node_ready() or _attached):
 		return
-	var s := get_editor_grid_size()
+	var s := get_editor_grid_size(wm.size)
 	client.request("nvim_ui_try_resize", [s.x, s.y])
+
+#region STANDALONE_METHODS
+func _on_standalone_resized():
+	if not (is_node_ready() or _attached):
+		return
+	# FIXME: scales to the innards of the window
+	print_debug("Original size: ", size)
+	size = get_tree().root.size
+	print_debug("Window size: ", size)
+#endregion
