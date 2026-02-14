@@ -81,6 +81,9 @@ func flush():
 		_redraw_events.store_line("###FLUSHED###")
 		_redraw_events.flush()
 		_log_options()
+	
+	for w in wm.get_children():
+		w.queue_redraw()
 
 var mode_info: Array
 func mode_info_set(cursor_style_enabled: bool, mode_info: Array):
