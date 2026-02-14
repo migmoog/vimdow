@@ -25,7 +25,7 @@ func _ready() -> void:
 		r.size_changed.connect(_on_standalone_resized)
 	
 	client.spawn(path_to_nvim)
-	await get_tree().create_timer(.1).timeout
+	await get_tree().create_timer(.5).timeout
 	setup_ui()
 
 func _unhandled_key_input(event: InputEvent) -> void:
@@ -38,7 +38,7 @@ func setup_ui():
 	assert(not _attached)
 	assert(client.is_running())
 	var initial_size := get_editor_grid_size(wm.size)
-	client.attach(initial_size.x, initial_size.y)
+	_attached = client.attach(initial_size.x, initial_size.y)
 
 # checks if vimdow is the standalone app or the editor plugin
 func _is_standalone() -> bool:
@@ -165,7 +165,7 @@ func _log_options():
 
 
 func _on_window_manager_resized() -> void:
-	if not (is_node_ready() or _attached):
+	if not is_node_ready() or not _attached:
 		return
 	var s := get_editor_grid_size(wm.size)
 	client.request("nvim_ui_try_resize", [s.x, s.y])
@@ -174,5 +174,6 @@ func _on_window_manager_resized() -> void:
 func _on_standalone_resized():
 	if not (is_node_ready() or _attached):
 		return
-	size = get_tree().root.size
+	#size = get_tree().root.size
+	set_deferred("size", get_tree().root.size)
 #endregion
