@@ -20,6 +20,10 @@ config/icon="res://icon.svg"
 window/size/viewport_width=1280
 window/size/viewport_height=720
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/TaskRunner/plugin.cfg")
+
 [physics]
 
 3d/physics_engine="Jolt Physics"
@@ -27,3 +31,20 @@ window/size/viewport_height=720
 [rendering]
 
 rendering_device/driver.windows="d3d12"
+
+[task_runner]
+
+default_task_folder="res://tasks"
+tasks=[{
+"task_command": "",
+"task_filepath": "res://tasks/run_vimdow_standalone.gd",
+"task_name": "Run Vimdow Standalone",
+"task_source": "ON_DISK",
+"task_type": "IN_EDITOR_GDSCRIPT"
+}, {
+"task_command": "cargo build --manifest-path \"../rust/Cargo.toml\"",
+"task_filepath": "",
+"task_name": "cargo build",
+"task_source": "INLINE",
+"task_type": "BASH"
+}]

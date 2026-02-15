@@ -1,0 +1,46 @@
+[gd_scene load_steps=5 format=3 uid="uid://c8e58aqc2c27d"]
+
+[ext_resource type="Script" uid="uid://dpiywhvwn8ni1" path="res://addons/TaskRunner/Dock/TasksTab/TasksTab.gd" id="1_tlm8y"]
+[ext_resource type="PackedScene" uid="uid://c18ovoj1pf088" path="res://addons/TaskRunner/Dock/TasksTab/OnboardingPanel.tscn" id="2_kd07y"]
+[ext_resource type="PackedScene" uid="uid://pphym055psij" path="res://addons/TaskRunner/Dock/TasksTab/FileTaskEditor.tscn" id="2_tsrey"]
+
+[sub_resource type="GDScriptSyntaxHighlighter" id="GDScriptSyntaxHighlighter_tlm8y"]
+
+[node name="MainPanel" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_tlm8y")
+
+[node name="OnboardingPanel" parent="." instance=ExtResource("2_kd07y")]
+unique_name_in_owner = true
+layout_mode = 1
+
+[node name="TaskEditor" type="VBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="InlineTaskEditor" type="CodeEdit" parent="TaskEditor"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+text = "ls -lah"
+syntax_highlighter = SubResource("GDScriptSyntaxHighlighter_tlm8y")
+draw_tabs = true
+gutters_draw_line_numbers = true
+
+[node name="FileTaskEditor" parent="TaskEditor" instance=ExtResource("2_tsrey")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2

@@ -1,0 +1,41 @@
+[gd_scene format=3 uid="uid://dxyfjnt5yuwhv"]
+
+[node name="SidePanel" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="SelectTaskColumn" type="VBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="SelectTaskButtons" type="Tree" parent="SelectTaskColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+column_titles_visible = true
+allow_reselect = true
+allow_rmb_select = true
+hide_root = true
+select_mode = 1
+
+[node name="NewTaskButton" type="MenuButton" parent="SelectTaskColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Add Task"
+flat = false
+item_count = 2
+popup/item_0/text = "New Task"
+popup/item_0/id = 0
+popup/item_1/text = "Existing Task"
+popup/item_1/id = 1

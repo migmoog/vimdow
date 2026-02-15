@@ -1,0 +1,41 @@
+[gd_scene format=3 uid="uid://cguvn4lwvf0fw"]
+
+[node name="Footer" type="BoxContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+
+[node name="TaskEditorControls" type="HBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SetTaskTypeOption" type="OptionButton" parent="TaskEditorControls"]
+unique_name_in_owner = true
+layout_mode = 2
+selected = 0
+item_count = 3
+popup/item_0/text = "shell"
+popup/item_0/id = 0
+popup/item_1/text = "editor gdscript"
+popup/item_1/id = 1
+popup/item_2/text = "gdscript"
+popup/item_2/id = 2
+
+[node name="RunTaskButton" type="Button" parent="TaskEditorControls"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Run"
+
+[node name="Control" type="Control" parent="TaskEditorControls"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CurrentTaskNameLabel" type="Label" parent="TaskEditorControls"]
+unique_name_in_owner = true
+modulate = Color(0.55695355, 0.55695283, 0.556953, 1)
+layout_mode = 2
+text = "[INLINE]"

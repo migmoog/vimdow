@@ -1,0 +1,18 @@
+[gd_scene load_steps=2 format=3 uid="uid://1yrkul7p4621"]
+
+[ext_resource type="Script" uid="uid://cawbefx3c0gif" path="res://addons/TaskRunner/Examples/SampleScenes/sample_scene_1.gd" id="1_oex3p"]
+
+[node name="SampleScene" type="Node"]
+script = ExtResource("1_oex3p")
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Button" type="Button" parent="CenterContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Sample 1"

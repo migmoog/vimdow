@@ -1,0 +1,107 @@
+[gd_scene load_steps=4 format=3 uid="uid://csdp0roq3c5n"]
+
+[ext_resource type="Script" uid="uid://bvomj86oesw08" path="res://addons/TaskRunner/Dock/TaskRunnerDock.gd" id="1_x0j6q"]
+[ext_resource type="Texture2D" uid="uid://cnlocqbk75nyu" path="res://addons/TaskRunner/Icons/Help.svg" id="2_3sjue"]
+[ext_resource type="Texture2D" uid="uid://oogllx6linmd" path="res://addons/TaskRunner/Icons/Skeleton3D.svg" id="2_afno3"]
+
+[node name="TaskRunnerDock" type="Control"]
+custom_minimum_size = Vector2(0, 250)
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_x0j6q")
+
+[node name="SidePanel_MainPanel" type="HSplitContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="SidePanel" type="Control" parent="SidePanel_MainPanel"]
+unique_name_in_owner = true
+clip_contents = true
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="SidePanel_MainPanel/SidePanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="DockTabs" type="TabBar" parent="SidePanel_MainPanel/SidePanel/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+clip_tabs = false
+close_with_middle_mouse = false
+
+[node name="TaskSidePanelMount" type="Control" parent="SidePanel_MainPanel/SidePanel/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MainPanel" type="Control" parent="SidePanel_MainPanel"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="SidePanel_MainPanel/MainPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TaskMainPanelMount" type="Control" parent="SidePanel_MainPanel/MainPanel/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TaskFooter" type="HBoxContainer" parent="SidePanel_MainPanel/MainPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="-- spacer" type="Control" parent="SidePanel_MainPanel/MainPanel/VBoxContainer/TaskFooter"]
+custom_minimum_size = Vector2(5, 0)
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="SidePanel_MainPanel/MainPanel/VBoxContainer/TaskFooter"]
+layout_mode = 2
+size_flags_horizontal = 3
+vertical_scroll_mode = 0
+
+[node name="TaskFooterMount" type="BoxContainer" parent="SidePanel_MainPanel/MainPanel/VBoxContainer/TaskFooter/ScrollContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="DocumentationButton" type="Button" parent="SidePanel_MainPanel/MainPanel/VBoxContainer/TaskFooter"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(30, 35)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+icon = ExtResource("2_3sjue")
+flat = true
+autowrap_trim_flags = 192
+clip_text = true
+icon_alignment = 1
+expand_icon = true
+
+[node name="BugReportButton" type="Button" parent="SidePanel_MainPanel/MainPanel/VBoxContainer/TaskFooter"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(30, 35)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+icon = ExtResource("2_afno3")
+flat = true
+autowrap_trim_flags = 192
+clip_text = true
+icon_alignment = 1
+expand_icon = true
