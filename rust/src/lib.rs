@@ -148,11 +148,11 @@ impl IControl for VimdowWindow {
                         .base_mut()
                         .draw_line_ex(
                             Vector2 {
-                                x: position.x + char_size.x,
+                                x: position.x,
                                 y: position.y,
                             },
                             Vector2 {
-                                x: position.x + char_size.x,
+                                x: position.x,
                                 y: position.y + char_size.y,
                             },
                             Color::WHITE,
