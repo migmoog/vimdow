@@ -28,12 +28,6 @@ func _ready() -> void:
 	await get_tree().create_timer(.5).timeout
 	setup_ui()
 
-#func _unhandled_key_input(event: InputEvent) -> void:
-	#if not _attached or not event is InputEventKey:
-		#return
-	#if event.is_pressed():
-		#client.request("nvim_input", [String.chr(event.unicode)])
-
 var _attached := false
 func setup_ui():
 	assert(not _attached)
@@ -174,6 +168,23 @@ func grid_cursor_goto(grid: int, row: int, col: int):
 	var win: VimdowWindow = wm.get_child(0)
 	win.cursor.x = col
 	win.cursor.y = row
+
+func grid_scroll(grid: int, top: int, bot: int, 
+	left: int, right: int, rows: int, cols: int):
+	_grid_assert(grid)
+	
+	var w: VimdowWindow = wm.get_child(0)
+	
+	var lines := []
+	for i in range(top, bot):
+		lines.append(w.get_line(i))
+	
+	var dst_top := top - rows
+	var dst_bot := bot - rows
+	var j = 0
+	for i in range(dst_top, dst_bot):
+		w.set_line(i, lines[j])
+		j += 1
 
 #region OPTION_SET
 var options := {}
