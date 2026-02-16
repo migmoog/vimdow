@@ -25,7 +25,7 @@ enum CursorShape {
 struct VimdowWindow {
     base: Base<Control>,
 
-    #[var]
+    #[export]
     id: Window,
 
     #[export(multiline)]
@@ -128,7 +128,7 @@ impl IControl for VimdowWindow {
             if self.cursor.x >= 0 && self.cursor.y >= 0 {
                 let position = Vector2 {
                     x: self.cursor.x as f32 * char_size.x,
-                    y: (self.cursor.y as f32+0.1) * char_size.y,
+                    y: (self.cursor.y as f32 + 0.1) * char_size.y,
                 };
 
                 match self.cursor_shape {

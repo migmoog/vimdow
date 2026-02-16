@@ -69,14 +69,22 @@ func _grid_assert(grid: int):
 #region REDRAW_EVENTS
 var redraw_batch: Array = []
 func flush():
+	var  i := 0
+	var dbg = OS.is_debug_build()
 	while not redraw_batch.is_empty():
 		var event: Array = redraw_batch.pop_front()
 		var event_name: String = event.pop_front()
 		if has_method(event_name):
+			#if dbg and event_name == "grid_line":
+				#print_debug("grid_line: %s" % str(event))
 			for e in event:
 				callv(event_name, e)
-		elif OS.is_debug_build():
-			_redraw_events.store_line(event_name)
+		elif dbg:
+			_redraw_events.store_line("[%d] %s: %s" %[
+				i,
+				event_name, 
+				JSON.stringify(event, "\t")])
+		i += 1
 	if OS.is_debug_build(): 
 		_redraw_events.store_line("###FLUSHED###")
 		_redraw_events.flush()
@@ -112,10 +120,14 @@ func set_icon(icon: String):
 func chdir(dir: String):
 	cwd = dir
 
+var _row_wraps: Array
 func grid_resize(grid: int, width: int, height: int):
 	_grid_assert(grid)
 	grid_width = width
 	grid_height = height
+	_row_wraps = []
+	for _i in height:
+		_row_wraps.append(false)
 	if wm.get_child_count() == 0:
 		var new_win := VimdowWindow.new()
 		wm.add_child(new_win)
@@ -124,10 +136,18 @@ func grid_resize(grid: int, width: int, height: int):
 		var win: VimdowWindow = wm.get_child(0)
 		win.set_grid_size(width, height)
 
+# this shouldn't be sent if ext_multigrid == false.
+# might be a bug but have this to just get it out of logs 
+func win_viewport(_grid: int, _win: int, _topline: int, _botline: int, 
+	_curline: int, _curcol: int, _line_count: int, _scroll_delta: int):
+	return
+
 var _last_hl_id: int
-func grid_line(grid: int, row: int, col_start: int, cells: Array, wrap: bool):
+func grid_line(grid: int, row: int, col_start: int, cells: Array, wrapline: bool):
 	_grid_assert(grid)
 	var win: VimdowWindow = wm.get_child(0)
+	_row_wraps[row] = wrapline
+	
 	var line = win.get_line(row).substr(0, col_start)
 	for cell in cells:
 		# TODO: implement highlights
@@ -140,8 +160,8 @@ func grid_line(grid: int, row: int, col_start: int, cells: Array, wrap: bool):
 				_last_hl_id = hl_id
 			[var text]:
 				line += text
-	while line.length() < grid_width: 
-		line += " "
+	#while line.length() < grid_width: 
+		#line += " "
 	win.set_line(row, line)
 
 func grid_clear(grid: int):
