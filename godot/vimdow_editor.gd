@@ -61,7 +61,8 @@ func _on_neovim_client_neovim_event(method: String, params: Array) -> void:
 
 
 func _on_neovim_client_neovim_response(msgid: int, error: Variant, result: Variant) -> void:
-	print("msgid: %d, error: %s, result: %s" % [msgid, str(error), str(result)])
+	#print("msgid: %d, error: %s, result: %s" % [msgid, str(error), str(result)])
+	pass
 
 func _grid_assert(grid: int):
 	assert(grid == grid_index, "Shouldn't receive an index for a different grid")
@@ -75,8 +76,6 @@ func flush():
 		var event: Array = redraw_batch.pop_front()
 		var event_name: String = event.pop_front()
 		if has_method(event_name):
-			#if dbg and event_name == "grid_line":
-				#print_debug("grid_line: %s" % str(event))
 			for e in event:
 				callv(event_name, e)
 		elif dbg:
@@ -148,7 +147,8 @@ func grid_line(grid: int, row: int, col_start: int, cells: Array, wrapline: bool
 	var win: VimdowWindow = wm.get_child(0)
 	_row_wraps[row] = wrapline
 	
-	var line = win.get_line(row).substr(0, col_start)
+	var old_line = win.get_line(row)
+	var line = old_line.substr(0, col_start)
 	for cell in cells:
 		# TODO: implement highlights
 		match cell:
@@ -160,8 +160,8 @@ func grid_line(grid: int, row: int, col_start: int, cells: Array, wrapline: bool
 				_last_hl_id = hl_id
 			[var text]:
 				line += text
-	#while line.length() < grid_width: 
-		#line += " "
+	if line.length() < old_line.length():
+		line += old_line.substr(line.length())
 	win.set_line(row, line)
 
 func grid_clear(grid: int):
