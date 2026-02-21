@@ -79,6 +79,15 @@ pub fn godot_to_rmpv(v: Variant) -> Value {
     }
 }
 
+pub fn rgb_to_color(rgb: i32) -> Color {
+    Color {
+        r: ((rgb >> 16) & 0xFF) as f32 / 255.0,
+        g: ((rgb >> 8) & 0xFF) as f32 / 255.0,
+        b: (rgb & 0xFF) as f32 / 255.0,
+        a: 1.0
+    }
+}
+
 pub fn rpc_array_to_vararray(arr: Vec<Value>) -> VarArray {
     rmpv_to_godot(Value::Array(arr))
         .try_to()

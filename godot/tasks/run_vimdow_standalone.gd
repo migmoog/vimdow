@@ -3,8 +3,7 @@ func run(r: TRTaskRun):
 	var cargo = r.run_subtask("cargo build")
 	await cargo.await_end()
 	
-	r.log(cargo.end_status)
-	if cargo.end_status.contains("error"):
+	if cargo.end_status.contains("101"):
 		r.log("Failed to build rust library")
 		return
 	else:

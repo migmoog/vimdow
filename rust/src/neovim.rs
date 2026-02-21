@@ -7,6 +7,7 @@ use std::collections::HashMap;
 mod ext_types;
 pub use ext_types::*;
 mod msgpack;
+pub use msgpack::rgb_to_color;
 
 use crate::neovim::msgpack::rpc_array_to_vararray;
 use msgpack::rmpv_to_godot;
@@ -128,7 +129,11 @@ impl NeovimClient {
         // edit buffers in separate windows.
         np.request(
             "nvim_ui_attach",
-            &(width, height, HashMap::from([("ext_linegrid", true)])),
+            &(
+                width,
+                height,
+                HashMap::from([("ext_linegrid", true), ("rgb", true)]),
+            ),
         );
         true
     }
@@ -186,8 +191,10 @@ impl INode for NeovimClient {
     }
 
     fn unhandled_key_input(&mut self, event: Gd<InputEvent>) {
-        let (true, Ok(key_event)) = (self.nvim_process.is_some(), event.try_cast::<InputEventKey>())
-        else {
+        let (true, Ok(key_event)) = (
+            self.nvim_process.is_some(),
+            event.try_cast::<InputEventKey>(),
+        ) else {
             return;
         };
 

@@ -40,9 +40,10 @@ func _is_standalone() -> bool:
 	return get_parent() is Window
 
 func get_editor_grid_size(s: Vector2) -> Vector2i:
-	var font_size = theme.get_font_size("font_size", "CodeEdit")
-	var char_size: Vector2 = theme.get_font("font", "CodeEdit").get_char_size(ord(" "), font_size)
-	return Vector2i((s/char_size).floor())
+	var font_size = theme.get_font_size("font_size", "VimdowEditor")
+	var char_size: Vector2 = theme.get_font("normal", "VimdowEditor")\
+		.get_char_size(ord(" "), font_size)
+	return Vector2i((s/char_size).round())
 
 func _on_neovim_client_neovim_event(method: String, params: Array) -> void:
 	if method == "redraw":
@@ -64,6 +65,7 @@ func _grid_assert(grid: int):
 #region REDRAW_EVENTS
 var redraw_batch: Array = []
 func flush():
+	#assert(not hl.is_empty())
 	var  i := 0
 	var dbg = OS.is_debug_build()
 	while not redraw_batch.is_empty():
@@ -76,7 +78,7 @@ func flush():
 			_redraw_events.store_line("[%d] %s: %s" %[
 				i,
 				event_name, 
-				JSON.stringify(event, "\t")])
+				JSON.stringify(event)])
 		i += 1
 	if OS.is_debug_build(): 
 		_redraw_events.store_line("###FLUSHED###")
@@ -84,7 +86,24 @@ func flush():
 		_log_options()
 	
 	for w in wm.get_children():
-		w.queue_redraw()
+		assert(not hl.is_empty())
+		w.flush(hl)
+
+var hl := {}
+func default_colors_set(rgb_fg: int, rgb_bg: int, rgb_sp: int, _cterm_fg, cterm_bg):
+	hl[0] = {
+		foreground = rgb_fg,
+		background = rgb_bg,
+		special = rgb_sp
+	}
+
+func hl_attr_define(id: int, rgb_attr: Dictionary, 
+	_cterm_attr: Dictionary, _info: Array):
+	hl[id] = rgb_attr
+
+var hl_groups := {}
+func hl_group_set(group_name: String, hl_id: int):
+	hl_groups[group_name] = hl_id
 
 var mode_info: Array
 func mode_info_set(cursor_style_enabled: bool, mode_info: Array):
@@ -143,8 +162,11 @@ func grid_line(grid: int, row: int, col_start: int, cells: Array, wrapline: bool
 	
 	var old_line = win.get_line(row)
 	var line = old_line.substr(0, col_start)
+	var hl_cols := {}
+	var start = -1
 	for cell in cells:
 		# TODO: implement highlights
+		start = line.length()
 		match cell:
 			[var text, var hl_id, var repeat]:
 				line += text.repeat(repeat)
@@ -154,8 +176,13 @@ func grid_line(grid: int, row: int, col_start: int, cells: Array, wrapline: bool
 				_last_hl_id = hl_id
 			[var text]:
 				line += text
-	if line.length() < old_line.length():
-		line += old_line.substr(line.length())
+		assert(hl.has(_last_hl_id))
+		hl_cols[start] = _last_hl_id
+	
+	win.clear_hl_region(row, start, line.length())
+	line += old_line.substr(line.length())
+	for col in hl_cols:
+		win.insert_hl_column(row, col, hl_cols[col])
 	win.set_line(row, line)
 
 func grid_clear(grid: int):
@@ -181,10 +208,8 @@ func grid_scroll(grid: int, top: int, bot: int,
 	
 	var dst_top := top - rows
 	var dst_bot := bot - rows
-	var j = 0
 	for i in range(dst_top, dst_bot):
-		w.set_line(i, lines[j])
-		j += 1
+		w.set_line(i, lines.pop_front())
 
 #region OPTION_SET
 var options := {}
