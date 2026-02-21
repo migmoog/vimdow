@@ -12,6 +12,7 @@ mod neovim;
 use indexmap::IndexMap;
 pub use neovim::NeovimClient;
 use neovim::{Window, rgb_to_color};
+use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(GodotConvert, Var, Export, Default)]
 #[godot(via = GString)]
@@ -269,13 +270,12 @@ impl VimdowWindow {
 
         // drawing background colors
         for r in regions.iter() {
-            let sl = &line[r.start_col..r.end_col];
             let position = Vector2 {
                 x: char_size.x * r.start_col as f32,
                 y: char_size.y * row as f32,
             };
             let size = Vector2 {
-                x: char_size.x * sl.len() as f32,
+                x: char_size.x * (r.end_col - r.start_col) as f32,
                 y: char_size.y,
             };
 
@@ -292,8 +292,15 @@ impl VimdowWindow {
                 x: r.start_col as f32 * char_size.x,
                 y: row as f32 * char_size.y + font.get_ascent_ex().font_size(font_size).done(),
             };
+
+            let region_text: String = line
+                .graphemes(true)
+                .enumerate()
+                .filter_map(|(i, cluster)| (r.start_col <= i && i < r.end_col).then_some(cluster))
+                .collect();
+
             self.base_mut()
-                .draw_string_ex(&r.font, text_position, &line[r.start_col..r.end_col])
+                .draw_string_ex(&r.font, text_position, &region_text)
                 .font_size(font_size)
                 .modulate(r.foreground)
                 .done();
