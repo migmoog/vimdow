@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use godot::{
-    classes::{Control, Font, FontVariation, IControl},
+    classes::{Control, Font, FontVariation, IControl, ProjectSettings},
     obj::WithBaseField,
     prelude::*,
 };
@@ -13,6 +13,26 @@ use indexmap::IndexMap;
 pub use neovim::NeovimClient;
 use neovim::{Window, rgb_to_color};
 use unicode_segmentation::UnicodeSegmentation;
+
+fn column_slice(row: &str, start: usize, end: usize) -> String {
+    assert!(start <= end);
+    row.graphemes(true).skip(start).take(end - start).collect()
+}
+
+fn column_replace(destination: &str, source: &str, start: usize, end: usize) -> String {
+    let source_graphemes = source.graphemes(true).collect::<Vec<_>>();
+    destination
+        .graphemes(true)
+        .enumerate()
+        .map(|(index, grapheme)| {
+            if index >= start && index < end {
+                source_graphemes[index - start]
+            } else {
+                grapheme
+            }
+        })
+        .collect()
+}
 
 #[derive(GodotConvert, Var, Export, Default)]
 #[godot(via = GString)]
@@ -90,7 +110,7 @@ impl VimdowWindow {
             .to_string()
             .lines()
             .nth(i as usize)
-            .unwrap()
+            .unwrap_or("")
             .into()
     }
 
@@ -143,6 +163,23 @@ impl VimdowWindow {
     }
 
     #[func]
+    fn scroll(&mut self, top: i32, bot: i32, left: i32, right: i32, rows: i32) {
+        let mut lines = (top..bot).map(|i| self.get_line(i)).collect::<Vec<_>>();
+
+        let (dst_top, dst_bot) = (top - rows, bot - rows);
+        for i in dst_top..dst_bot {
+            let source_line = lines.remove(0);
+            if i < top || i >= bot {
+                continue;
+            }
+            let destination_line = self.get_line(i);
+            let (start, end) = (left as usize, right as usize);
+            // NOTE dont use byte range. use column slicer
+            self.set_line(i, column_replace(&destination_line, &source_line, start, end));
+        }
+    }
+
+    #[func]
     fn clear(&mut self) {
         for i in 0..self.get_line_count() {
             let line = self.get_line(i).to_string();
@@ -175,6 +212,8 @@ impl VimdowWindow {
 
     fn get_hl_default_color(&self, choice: DefaultColor) -> Color {
         self.hl_data
+            .at(0)
+            .to::<VarDictionary>()
             .get(choice.to_string())
             .map(|v| rgb_to_color(v.to()))
             .expect("Should have a default color of this type")
@@ -194,7 +233,12 @@ impl VimdowWindow {
         }
         let mut regions = vec![];
 
-        let default_hl: VarDictionary = self.hl_data.at(0).to();
+        let ignore_hl: bool = ProjectSettings::singleton()
+            .get_setting("vimdow/debug/ignore_hl")
+            .to();
+
+        let default_fg = self.get_hl_default_color(DefaultColor::Foreground);
+        let default_bg = self.get_hl_default_color(DefaultColor::Background);
         if let Some(region) = self.hl_regions.get(&row) {
             let mut region_iter = region.iter().peekable();
             while let Some((&current_col, &hl_id)) = region_iter.next() {
@@ -213,11 +257,11 @@ impl VimdowWindow {
                 let mut foreground: Color = hl
                     .get("foreground")
                     .map(|d| rgb_to_color(d.to()))
-                    .unwrap_or_else(|| rgb_to_color(default_hl.at("foreground").to()));
+                    .unwrap_or_else(|| self.get_hl_default_color(DefaultColor::Foreground));
                 let mut background: Color = hl
                     .get("background")
                     .map(|d| rgb_to_color(d.to()))
-                    .unwrap_or_else(|| rgb_to_color(default_hl.at("background").to()));
+                    .unwrap_or_else(|| self.get_hl_default_color(DefaultColor::Background));
 
                 if hl.get("reverse").is_some() {
                     (foreground, background) = (background, foreground);
@@ -268,22 +312,24 @@ impl VimdowWindow {
             });
         }
 
-        // drawing background colors
-        for r in regions.iter() {
-            let position = Vector2 {
-                x: char_size.x * r.start_col as f32,
-                y: char_size.y * row as f32,
-            };
-            let size = Vector2 {
-                x: char_size.x * (r.end_col - r.start_col) as f32,
-                y: char_size.y,
-            };
+        if !ignore_hl {
+            // drawing background colors
+            for r in regions.iter() {
+                let position = Vector2 {
+                    x: char_size.x * r.start_col as f32,
+                    y: char_size.y * row as f32,
+                };
+                let size = Vector2 {
+                    x: char_size.x * (r.end_col - r.start_col) as f32,
+                    y: char_size.y,
+                };
 
-            // drawing colored background
-            self.base_mut()
-                .draw_rect_ex(Rect2 { position, size }, r.background)
-                .filled(true)
-                .done();
+                // drawing colored background
+                self.base_mut()
+                    .draw_rect_ex(Rect2 { position, size }, r.background)
+                    .filled(true)
+                    .done();
+            }
         }
 
         // drawing text with foreground colors
@@ -293,16 +339,12 @@ impl VimdowWindow {
                 y: row as f32 * char_size.y + font.get_ascent_ex().font_size(font_size).done(),
             };
 
-            let region_text: String = line
-                .graphemes(true)
-                .enumerate()
-                .filter_map(|(i, cluster)| (r.start_col <= i && i < r.end_col).then_some(cluster))
-                .collect();
+            let region_text = column_slice(&line, r.start_col, r.end_col);
 
             self.base_mut()
                 .draw_string_ex(&r.font, text_position, &region_text)
                 .font_size(font_size)
-                .modulate(r.foreground)
+                .modulate(if ignore_hl { default_fg } else { r.foreground })
                 .done();
         }
     }
