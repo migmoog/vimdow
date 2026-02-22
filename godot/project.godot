@@ -47,4 +47,16 @@ tasks=[{
 "task_name": "cargo build",
 "task_source": "INLINE",
 "task_type": "BASH"
+}, {
+"task_command": "func run(r: TRTaskRun):
+	var RunVimdow = load(\"tasks/run_vimdow_standalone.gd\")
+	await RunVimdow.new().edit_file(r, \"vimdow_editor.gd\")",
+"task_filepath": "",
+"task_name": "Edit vimdow_edit.gd",
+"task_source": "INLINE",
+"task_type": "IN_EDITOR_GDSCRIPT"
 }]
+
+[vimdow]
+
+edit_file="vimdow_editor.gd"

@@ -25,8 +25,12 @@ func _ready() -> void:
 		r.size_changed.connect(_on_standalone_resized)
 	
 	client.spawn(path_to_nvim)
-	await get_tree().create_timer(.5).timeout
+	await get_tree().create_timer(.1).timeout
 	setup_ui()
+	
+	var file = ProjectSettings.get_setting("vimdow/edit_file")
+	if file:
+		client.request("nvim_command", ["e %s" % file])
 
 var _attached := false
 func setup_ui():
@@ -84,7 +88,24 @@ func flush():
 		_log_options()
 	
 	for w in wm.get_children():
-		w.queue_redraw()
+		assert(not hl.is_empty())
+		w.flush(hl)
+
+var hl := {}
+func default_colors_set(rgb_fg: int, rgb_bg: int, rgb_sp: int, _cterm_fg, _cterm_bg):
+	hl[0] = {
+		foreground = rgb_fg,
+		background = rgb_bg,
+		special = rgb_sp
+	}
+
+func hl_attr_define(id: int, rgb_attr: Dictionary, 
+	_cterm_attr: Dictionary, _info: Array):
+	hl[id] = rgb_attr
+
+var hl_groups := {}
+func hl_group_set(group_name: String, hl_id: int):
+	hl_groups[group_name] = hl_id
 
 var mode_info: Array
 func mode_info_set(cursor_style_enabled: bool, mode_info: Array):
@@ -170,21 +191,19 @@ func grid_cursor_goto(grid: int, row: int, col: int):
 	win.cursor.y = row
 
 func grid_scroll(grid: int, top: int, bot: int, 
-	left: int, right: int, rows: int, cols: int):
+	left: int, right: int, rows: int, _cols: int):
 	_grid_assert(grid)
 	
 	var w: VimdowWindow = wm.get_child(0)
-	
-	var lines := []
-	for i in range(top, bot):
-		lines.append(w.get_line(i))
-	
-	var dst_top := top - rows
-	var dst_bot := bot - rows
-	var j = 0
-	for i in range(dst_top, dst_bot):
-		w.set_line(i, lines[j])
-		j += 1
+	w.scroll(top, bot, left, right, rows)
+	#var lines := []
+	#for i in range(top, bot):
+		#lines.append(w.get_line(i))
+	#
+	#var dst_top := top - rows
+	#var dst_bot := bot - rows
+	#for i in range(dst_top, dst_bot):
+		#w.set_line(i, lines.pop_front())
 
 #region OPTION_SET
 var options := {}
