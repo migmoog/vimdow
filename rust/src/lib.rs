@@ -235,7 +235,7 @@ impl VimdowWindow {
 
         let ignore_hl: bool = ProjectSettings::singleton()
             .get_setting("vimdow/debug/ignore_hl")
-            .to();
+            .try_to().unwrap_or(false);
 
         let default_fg = self.get_hl_default_color(DefaultColor::Foreground);
         let default_bg = self.get_hl_default_color(DefaultColor::Background);
