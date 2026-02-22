@@ -1,7 +1,9 @@
 func edit_file(r: TRTaskRun, file: String):
 	ProjectSettings.set_setting("vimdow/edit_file", file)
+	r.log('📁 opening file: "%s"' % file)
 	run(r)
 	await r.await_end()
+	assert(ProjectSettings.get_setting("vimdow/edit_file") == file)
 	ProjectSettings.set_setting("vimdow/edit_file", "")
 
 func run(r: TRTaskRun):
@@ -10,7 +12,11 @@ func run(r: TRTaskRun):
 	await cargo.await_end()
 	
 	if cargo.end_status.contains("101"):
-		r.log("Failed to build rust library")
+		const MSG = "Failed to build rust library"
+		r.log(MSG)
+		r.on_end.emit(MSG)
 		return
 	else:
+		r.log("Running vimdow standalone ️")
 		EditorInterface.play_main_scene()
+		r.on_end.emit("")

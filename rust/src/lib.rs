@@ -164,18 +164,30 @@ impl VimdowWindow {
 
     #[func]
     fn scroll(&mut self, top: i32, bot: i32, left: i32, right: i32, rows: i32) {
-        let mut lines = (top..bot).map(|i| self.get_line(i)).collect::<Vec<_>>();
+        // let mut lines = (top..bot).map(|i| self.get_line(i)).collect::<Vec<_>>();
+        let mut lines = Vec::new();
+        let mut hls = Vec::new();
+        for i in top..bot {
+            lines.push(self.get_line(i));
+            // if let Some(region) = self.hl_regions.remove(&i) {
+            //     hls.insert(i, region);
+            // }
+            hls.push(self.hl_regions.remove(&i));
+        }
 
         let (dst_top, dst_bot) = (top - rows, bot - rows);
         for i in dst_top..dst_bot {
             let source_line = lines.remove(0);
+            let source_region = hls.remove(0);
             if i < top || i >= bot {
                 continue;
             }
             let destination_line = self.get_line(i);
             let (start, end) = (left as usize, right as usize);
-            // NOTE dont use byte range. use column slicer
             self.set_line(i, column_replace(&destination_line, &source_line, start, end));
+            if let Some(source_region) = source_region {
+                self.hl_regions.insert(i, source_region);
+            }
         }
     }
 
@@ -257,11 +269,11 @@ impl VimdowWindow {
                 let mut foreground: Color = hl
                     .get("foreground")
                     .map(|d| rgb_to_color(d.to()))
-                    .unwrap_or_else(|| self.get_hl_default_color(DefaultColor::Foreground));
+                    .unwrap_or(default_fg);
                 let mut background: Color = hl
                     .get("background")
                     .map(|d| rgb_to_color(d.to()))
-                    .unwrap_or_else(|| self.get_hl_default_color(DefaultColor::Background));
+                    .unwrap_or(default_bg);
 
                 if hl.get("reverse").is_some() {
                     (foreground, background) = (background, foreground);
