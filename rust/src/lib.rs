@@ -391,7 +391,12 @@ impl VimdowWindow {
                         &cell_region.font,
                         Vector2 {
                             x: position.x,
-                            y: position.y + cell_region.font.get_ascent(),
+                            y: position.y
+                                + cell_region
+                                    .font
+                                    .get_ascent_ex()
+                                    .font_size(cell_region.font_size)
+                                    .done(),
                         },
                         &column_slice(&line, cursor_col, cursor_col + 1),
                     )

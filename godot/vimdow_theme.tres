@@ -4,6 +4,7 @@
 [ext_resource type="FontFile" uid="uid://b62h820uc86yo" path="res://FiraCodeNerdFont-Regular.ttf" id="2_hyhkx"]
 
 [resource]
+VimdowEditor/font_sizes/font_size = 12
 VimdowEditor/fonts/bold = ExtResource("1_umg0i")
 VimdowEditor/fonts/italic = null
 VimdowEditor/fonts/normal = ExtResource("2_hyhkx")
