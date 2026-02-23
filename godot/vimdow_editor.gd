@@ -1,6 +1,6 @@
 extends MarginContainer
 
-## Neovim ui docs state that there is only ever one 
+## Neovim ui docs state that there is only ever one
 ## grid index passed to grid events, 1 the global grid
 # NOTE: an option in the future might be to have an "ext_multigrid" toggle that 
 # will split the windows into their own separate windows. So these variables are unchanged for now
@@ -181,7 +181,7 @@ func grid_line(grid: int, row: int, col_start: int, cells: Array, wrapline: bool
 		assert(hl.has(_last_hl_id))
 		hl_cols[start] = _last_hl_id
 	
-	win.clear_hl_region(row, start, line.length())
+	win.clear_hl_region(row, col_start, line.length())
 	line += old_line.substr(line.length())
 	for col in hl_cols:
 		win.insert_hl_column(row, col, hl_cols[col])
