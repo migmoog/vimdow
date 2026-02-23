@@ -167,7 +167,6 @@ func grid_line(grid: int, row: int, col_start: int, cells: Array, wrapline: bool
 	var hl_cols := {}
 	var start = -1
 	for cell in cells:
-		# TODO: implement highlights
 		start = line.length()
 		match cell:
 			[var text, var hl_id, var repeat]:
@@ -179,7 +178,12 @@ func grid_line(grid: int, row: int, col_start: int, cells: Array, wrapline: bool
 			[var text]:
 				line += text
 		assert(hl.has(_last_hl_id))
-		hl_cols[start] = _last_hl_id
+		var last_column = -1
+		for col in hl_cols:
+			last_column = max(col, last_column)
+		
+		if hl_cols.is_empty() or hl_cols[last_column] != _last_hl_id:
+			hl_cols[start] = _last_hl_id
 	
 	win.clear_hl_region(row, col_start, line.length())
 	line += old_line.substr(line.length())
@@ -232,7 +236,6 @@ func _log_options():
 	) + ",\n\n")
 	_option_set.flush()
 #endregion
-
 
 func _on_window_manager_resized() -> void:
 	if not is_node_ready() or not _attached:
