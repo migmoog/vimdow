@@ -91,7 +91,7 @@ func flush():
 	
 	for w in wm.get_children():
 		assert(not hl.is_empty())
-		w.flush(hl)
+		w.flush(hl, mode_info[mode_idx])
 
 var hl := {}
 
@@ -121,10 +121,7 @@ var mode_idx: int
 func mode_change(mode: String, mode_idx: int):
 	self.mode = mode
 	self.mode_idx = mode_idx
-	
-	var m: Dictionary = mode_info[self.mode_idx]
-	for w: VimdowWindow in wm.get_children():
-		w.cursor_shape = m.get("cursor_shape", w.cursor_shape)
+
 func set_title(title: String):
 	if _is_standalone():
 		get_tree().root.title = title
