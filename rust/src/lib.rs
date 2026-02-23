@@ -164,14 +164,10 @@ impl VimdowWindow {
 
     #[func]
     fn scroll(&mut self, top: i32, bot: i32, left: i32, right: i32, rows: i32) {
-        // let mut lines = (top..bot).map(|i| self.get_line(i)).collect::<Vec<_>>();
         let mut lines = Vec::new();
         let mut hls = Vec::new();
         for i in top..bot {
             lines.push(self.get_line(i));
-            // if let Some(region) = self.hl_regions.remove(&i) {
-            //     hls.insert(i, region);
-            // }
             hls.push(self.hl_regions.remove(&i));
         }
 
@@ -375,7 +371,7 @@ impl VimdowWindow {
         let cell_region = self
             .get_hl_regions(self.cursor.y)
             .into_iter()
-            .find(|r| r.start_col <= cursor_col && cursor_col <= r.end_col)
+            .find(|r| r.start_col <= cursor_col && cursor_col < r.end_col)
             .expect("Cursor shouldn't be drawn if it isn't visible on the screen");
 
         let position =

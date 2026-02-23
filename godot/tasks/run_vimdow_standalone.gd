@@ -1,6 +1,6 @@
 func edit_file(r: TRTaskRun, file: String):
 	ProjectSettings.set_setting("vimdow/edit_file", file)
-	r.log('📁 opening file: "%s"' % file)
+	r.log('📁 opening file: "%s"' % ProjectSettings.get_setting("vimdow/edit_file"))
 	run(r)
 	await r.await_end()
 	assert(ProjectSettings.get_setting("vimdow/edit_file") == file)
