@@ -12,7 +12,7 @@ var cwd: String
 
 @export_file_path() var path_to_nvim: String = "/usr/bin/nvim"
 @onready var client = $NeovimClient
-@onready var wm = $WindowManager
+@onready var w = $VimdowWindow
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
@@ -36,7 +36,7 @@ var _attached := false
 func setup_ui():
 	assert(not _attached)
 	assert(client.is_running())
-	var initial_size := get_editor_grid_size(wm.size)
+	var initial_size := get_editor_grid_size(w.size)
 	_attached = client.attach(initial_size.x, initial_size.y)
 
 # checks if vimdow is the standalone app or the editor plugin
@@ -89,9 +89,8 @@ func flush():
 		_redraw_events.flush()
 		_log_options()
 	
-	for w in wm.get_children():
-		assert(not hl.is_empty())
-		w.flush(hl, mode_info[mode_idx])
+	assert(not hl.is_empty())
+	w.flush(hl, mode_info[mode_idx])
 
 var hl := {}
 
@@ -142,13 +141,7 @@ func grid_resize(grid: int, width: int, height: int):
 	_row_wraps = []
 	for _i in height:
 		_row_wraps.append(false)
-	if wm.get_child_count() == 0:
-		var new_win := VimdowWindow.new()
-		wm.add_child(new_win)
-		new_win.set_grid_size(width, height)
-	else:
-		var win: VimdowWindow = wm.get_child(0)
-		win.set_grid_size(width, height)
+	w.set_grid_size(width, height)
 
 # this shouldn't be sent if ext_multigrid == false.
 # might be a bug but have this to just get it out of logs 
@@ -156,57 +149,60 @@ func win_viewport(_grid: int, _win: int, _topline: int, _botline: int,
 	_curline: int, _curcol: int, _line_count: int, _scroll_delta: int):
 	return
 
-var _last_hl_id: int
 func grid_line(grid: int, row: int, col_start: int, cells: Array, wrapline: bool):
 	_grid_assert(grid)
-	var win: VimdowWindow = wm.get_child(0)
 	_row_wraps[row] = wrapline
-	
-	var old_line = win.get_line(row)
+	var old_line = w.get_line(row)
 	var line = old_line.substr(0, col_start)
 	var hl_cols := {}
-	var start = -1
+	var last_hl_id = null
+	var col_end = col_start
 	for cell in cells:
-		start = line.length()
+		var start = line.length()
 		match cell:
 			[var text, var hl_id, var repeat]:
 				line += text.repeat(repeat)
-				_last_hl_id = hl_id
+				last_hl_id = hl_id
+				col_end += repeat
 			[var text, var hl_id]:
 				line += text
-				_last_hl_id = hl_id
+				last_hl_id = hl_id
+				col_end += 1
 			[var text]:
 				line += text
-		assert(hl.has(_last_hl_id))
-		var last_column = -1
-		for col in hl_cols:
-			last_column = max(col, last_column)
+				col_end += 1
+		assert(hl.has(last_hl_id))
 		
-		if hl_cols.is_empty() or hl_cols[last_column] != _last_hl_id:
-			hl_cols[start] = _last_hl_id
+		if hl_cols.is_empty() or hl_cols[hl_cols.keys().max()] != last_hl_id:
+			hl_cols[start] = last_hl_id
 	
-	win.clear_hl_region(row, col_start, line.length())
-	line += old_line.substr(line.length())
+	var hl_regions = $VimdowWindow/Highlighter.hl_regions
+	if not hl_regions.has(row):
+		hl_regions[row] = {}
+	
+	for col in range(col_start, col_end):
+		hl_regions[row].erase(col)
+	
 	for col in hl_cols:
-		win.insert_hl_column(row, col, hl_cols[col])
-	win.set_line(row, line)
+		hl_regions[row][col] = hl_cols[col]
+	hl_regions[row].sort()
+	
+	line += old_line.substr(line.length())
+	w.set_line(row, line)
 
 func grid_clear(grid: int):
 	_grid_assert(grid)
-	for w: VimdowWindow in wm.get_children():
-		w.clear()
+	w.clear()
 
 func grid_cursor_goto(grid: int, row: int, col: int):
 	_grid_assert(grid)
-	var win: VimdowWindow = wm.get_child(0)
-	win.cursor.x = col
-	win.cursor.y = row
+	w.cursor.x = col
+	w.cursor.y = row
 
 func grid_scroll(grid: int, top: int, bot: int, 
 	left: int, right: int, rows: int, _cols: int):
 	_grid_assert(grid)
 	
-	var w: VimdowWindow = wm.get_child(0)
 	w.scroll(top, bot, left, right, rows)
 
 #region OPTION_SET
@@ -237,16 +233,15 @@ func _log_options():
 	_option_set.flush()
 #endregion
 
-func _on_window_manager_resized() -> void:
+func _on_window_resized() -> void:
 	if not is_node_ready() or not _attached:
 		return
-	var s := get_editor_grid_size(wm.size)
+	var s := get_editor_grid_size(w.size)
 	client.request("nvim_ui_try_resize", [s.x, s.y])
 
 #region STANDALONE_METHODS
 func _on_standalone_resized():
 	if not (is_node_ready() or _attached):
 		return
-	#size = get_tree().root.size
 	set_deferred("size", get_tree().root.size)
 #endregion
