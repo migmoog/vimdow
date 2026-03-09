@@ -203,7 +203,18 @@ func grid_scroll(grid: int, top: int, bot: int,
 	left: int, right: int, rows: int, _cols: int):
 	_grid_assert(grid)
 	
-	w.scroll(top, bot, left, right, rows)
+	var lines := []
+	for i in range(top, bot):
+		lines.append(w.get_line(i))
+	
+	var dst_top := top - rows
+	var dst_bot := bot - rows
+	
+	for row in range(dst_top, dst_bot):
+		var line = lines.pop_front()
+		if row < top or row > bot:
+			continue
+		w.set_line(row, line)
 
 #region OPTION_SET
 var options := {}

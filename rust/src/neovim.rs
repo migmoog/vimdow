@@ -207,6 +207,10 @@ impl INode for NeovimClient {
             return;
         }
 
+        if key_event.get_keycode() == Key::CAPSLOCK {
+            return;
+        }
+
         if key_event.is_pressed() {
             let input = match &self.modifier {
                 Some(m) => m.modify(key_event),
