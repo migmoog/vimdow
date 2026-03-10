@@ -218,12 +218,16 @@ func grid_scroll(grid: int, top: int, bot: int,
 	var dst_bot := bot - rows
 	
 	for row in range(dst_top, dst_bot):
-		var line = lines.pop_front()
-		var regions = hl_regions.pop_front()
+		var src_line = lines.pop_front()
+		var src_regions = hl_regions.pop_front()
 		if row < top or row >= bot:
 			continue
+		var dst_line = w.get_line(row)
+		var line = dst_line.substr(0, left) + src_line.substr(left, right) + dst_line.substr(right)
 		w.set_line(row, line)
-		$VimdowWindow/Highlighter.hl_regions[row] = regions
+		#$VimdowWindow/Highlighter.hl_regions[row] = regions
+		for i in range(left, right):
+			$VimdowWindow/Highlighter.hl_regions[row][i] = src_regions[i]
 
 #region OPTION_SET
 var options := {}
