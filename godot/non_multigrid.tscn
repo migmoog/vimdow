@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://d0hli155lh2e5"]
+
+[node name="VimdowWindow" type="VimdowWindow" unique_id=664027018]
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Highlighter" type="Highlighter" parent="." unique_id=1293474449]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0

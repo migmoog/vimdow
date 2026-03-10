@@ -31,7 +31,7 @@ pub fn rmpv_to_godot(v: Value) -> Variant {
         }
         Value::String(s) => s.into_str().unwrap().to_variant(),
         Value::Boolean(b) => b.to_variant(),
-        Value::Binary(bin) => todo!(), // neovim doesn't use this yet
+        Value::Binary(_bin) => todo!(), // neovim doesn't use this yet
     }
 }
 

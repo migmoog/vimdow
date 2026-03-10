@@ -1,22 +1,33 @@
+
 use godot::{
-    classes::{Control, IControl},
+    classes::{Control, IControl, ProjectSettings},
+    obj::WithBaseField,
     prelude::*,
 };
 
 mod err;
+mod highlights;
 mod neovim;
 
-pub use neovim::NeovimClient;
-use neovim::Window;
+use unicode_segmentation::UnicodeSegmentation;
 
-#[derive(GodotConvert, Var, Export, Default)]
-#[godot(via = GString)]
-#[allow(non_camel_case_types)]
-enum CursorShape {
-    #[default]
-    block,
-    vertical,
-    horizontal,
+use crate::highlights::Highlighter;
+
+fn column_slice(row: &str, start: usize, end: usize) -> String {
+    assert!(start <= end);
+    row.graphemes(true).skip(start).take(end - start).collect()
+}
+
+fn get_column(src: &str, pos: &Vector2i) -> String {
+    src.lines()
+        .nth(pos.y as usize)
+        .map(|line| {
+            line.graphemes(true)
+                .nth(pos.x as usize)
+                .unwrap_or(" ")
+                .to_string()
+        })
+        .unwrap_or_else(String::new)
 }
 
 #[derive(GodotClass)]
@@ -25,18 +36,18 @@ enum CursorShape {
 struct VimdowWindow {
     base: Base<Control>,
 
-    #[export]
-    id: Window,
-
     #[export(multiline)]
     text: GString,
-
-    #[export]
-    cursor_shape: CursorShape,
 
     #[init(val = Vector2i {x: -1, y: -1})]
     #[var]
     cursor: Vector2i,
+
+    #[export]
+    current_mode: VarDictionary,
+
+    #[init(node = "Highlighter")]
+    highlighter: OnReady<Gd<Highlighter>>,
 }
 
 #[godot_api]
@@ -52,7 +63,7 @@ impl VimdowWindow {
             .to_string()
             .lines()
             .nth(i as usize)
-            .unwrap()
+            .unwrap_or("")
             .into()
     }
 
@@ -78,6 +89,17 @@ impl VimdowWindow {
 
     #[func]
     fn set_grid_size(&mut self, width: i32, height: i32) {
+        self.highlighter.bind_mut().set_hl_regions(
+            (0..=height)
+                .map(|_| {
+                    let mut out = PackedInt32Array::new();
+                    out.resize(width as usize);
+                    out.fill(0);
+                    out
+                })
+                .collect(),
+        );
+
         let mut row = " ".repeat(width as usize);
         row.push('\n');
         let mut text = row.repeat(height as usize);
@@ -99,84 +121,133 @@ impl VimdowWindow {
                 .collect();
             self.set_line(i, new_line);
         }
+
+        self.highlighter.bind_mut().clear();
+    }
+
+    #[func]
+    // starts a redraw with the provided highlight data
+    fn flush(&mut self, hl: VarDictionary, current_mode: VarDictionary) {
+        self.highlighter.bind_mut().set_hl_data(hl);
+        self.current_mode = current_mode;
+        self.base_mut().queue_redraw();
+    }
+
+    fn draw_row(&mut self, row: i32) {
+        let ignore_hl: bool = ProjectSettings::singleton()
+            .get_setting("vimdow/debug/ignore_hl")
+            .try_to()
+            .unwrap_or(false);
+
+        let regions = self.highlighter.bind().get_regions(row);
+        if !ignore_hl {
+            // drawing background colors
+            for r in regions.iter() {
+                let position = Vector2 {
+                    x: r.attr.char_size.x * r.start_col as f32,
+                    y: r.attr.char_size.y * row as f32,
+                };
+                let size = Vector2 {
+                    x: r.attr.char_size.x * (r.end_col - r.start_col) as f32,
+                    y: r.attr.char_size.y,
+                };
+
+                // drawing colored background
+                self.base_mut()
+                    .draw_rect_ex(Rect2 { position, size }, r.attr.background)
+                    .filled(true)
+                    .done();
+            }
+        }
+
+        for r in regions.iter() {
+            let text_position = Vector2 {
+                x: r.start_col as f32 * r.attr.char_size.x,
+                y: row as f32 * r.attr.char_size.y
+                    + r.attr
+                        .font
+                        .get_ascent_ex()
+                        .font_size(r.attr.font_size)
+                        .done(),
+            };
+
+            let region_text = column_slice(&self.get_line(row), r.start_col, r.end_col);
+
+            self.base_mut()
+                .draw_string_ex(&r.attr.font, text_position, &region_text)
+                .font_size(r.attr.font_size)
+                .modulate(if ignore_hl {
+                    Color::WHITE
+                } else {
+                    r.attr.foreground
+                })
+                .done();
+        }
+    }
+
+    fn draw_cursor(&mut self) {
+        let attr = self.highlighter.bind().get_cursor_attr(&self.cursor);
+        let cs = attr.char_size;
+        let position = { Vector2::new(self.cursor.x as f32, self.cursor.y as f32) * cs };
+        match self.current_mode.at("cursor_shape").to_string().as_str() {
+            "block" => {
+                self.base_mut()
+                    .draw_rect_ex(Rect2 { position, size: cs }, attr.foreground)
+                    .filled(true)
+                    .done();
+
+                let region_text = get_column(&self.text.to_string().as_str(), &self.cursor);
+                self.base_mut()
+                    .draw_string_ex(
+                        &attr.font,
+                        Vector2 {
+                            x: position.x,
+                            y: position.y
+                                + attr.font.get_ascent_ex().font_size(attr.font_size).done(),
+                        },
+                        &region_text,
+                    )
+                    .font_size(attr.font_size)
+                    .modulate(attr.background)
+                    .done();
+            }
+            "vertical" => {
+                self.base_mut().draw_line(
+                    position,
+                    Vector2 {
+                        x: position.x,
+                        y: position.y + cs.y,
+                    },
+                    attr.foreground,
+                );
+            }
+            "horizontal" => {
+                self.base_mut().draw_line(
+                    Vector2 {
+                        x: position.x,
+                        y: position.y + cs.y,
+                    },
+                    Vector2 {
+                        x: position.x + cs.x,
+                        y: position.y + cs.y,
+                    },
+                    attr.foreground,
+                );
+            }
+            _ => unreachable!(),
+        }
     }
 }
 
 #[godot_api]
 impl IControl for VimdowWindow {
     fn draw(&mut self) {
-        let font = self
-            .base()
-            .get_theme_font_ex("font")
-            .theme_type("CodeEdit")
-            .done()
-            .expect("Should have a font");
-        let font_size = self
-            .base()
-            .get_theme_font_size_ex("font_size")
-            .theme_type("CodeEdit")
-            .done();
-        let char_size = font.get_char_size(' '.into(), font_size);
-        let text = self.text.to_string();
-        for (i, line) in text.lines().enumerate() {
-            self.base_mut()
-                .draw_string_ex(&font, Vector2::new(0.0, (i + 1) as f32 * char_size.y), line)
-                .font_size(font_size)
-                .done();
+        for i in 0..self.get_line_count() {
+            self.draw_row(i);
+        }
 
-            let width = 2.0;
-            if self.cursor.x >= 0 && self.cursor.y >= 0 {
-                let position = Vector2 {
-                    x: self.cursor.x as f32 * char_size.x,
-                    y: (self.cursor.y as f32 + 0.1) * char_size.y,
-                };
-
-                match self.cursor_shape {
-                    CursorShape::block => self
-                        .base_mut()
-                        .draw_rect_ex(
-                            Rect2 {
-                                position,
-                                size: char_size,
-                            },
-                            Color::WHITE,
-                        )
-                        .filled(false)
-                        .width(width)
-                        .done(),
-                    CursorShape::vertical => self
-                        .base_mut()
-                        .draw_line_ex(
-                            Vector2 {
-                                x: position.x,
-                                y: position.y,
-                            },
-                            Vector2 {
-                                x: position.x,
-                                y: position.y + char_size.y,
-                            },
-                            Color::WHITE,
-                        )
-                        .width(width)
-                        .done(),
-
-                    CursorShape::horizontal => self
-                        .base_mut()
-                        .draw_line_ex(
-                            Vector2 {
-                                x: position.x,
-                                y: position.y + char_size.y,
-                            },
-                            Vector2 {
-                                x: position.x + char_size.x,
-                                y: position.y + char_size.y,
-                            },
-                            Color::WHITE,
-                        )
-                        .done(),
-                };
-                // self.base_mut().draw_char(&font, pos, cursor_char);
-            }
+        if self.cursor.x >= 0 && self.cursor.y >= 0 {
+            self.draw_cursor();
         }
     }
 }
