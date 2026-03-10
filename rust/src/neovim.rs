@@ -5,9 +5,7 @@ use rmpv::Value;
 use std::collections::HashMap;
 
 mod ext_types;
-pub use ext_types::*;
 mod msgpack;
-pub use msgpack::rgb_to_color;
 
 use crate::neovim::msgpack::rpc_array_to_vararray;
 use msgpack::rmpv_to_godot;

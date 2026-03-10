@@ -1,7 +1,6 @@
-use std::collections::BTreeMap;
 
 use godot::{
-    classes::{Control, Font, FontVariation, IControl, ProjectSettings},
+    classes::{Control, IControl, ProjectSettings},
     obj::WithBaseField,
     prelude::*,
 };
@@ -10,7 +9,6 @@ mod err;
 mod highlights;
 mod neovim;
 
-pub use neovim::NeovimClient;
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::highlights::Highlighter;
@@ -18,21 +16,6 @@ use crate::highlights::Highlighter;
 fn column_slice(row: &str, start: usize, end: usize) -> String {
     assert!(start <= end);
     row.graphemes(true).skip(start).take(end - start).collect()
-}
-
-fn column_replace(destination: &str, source: &str, start: usize, end: usize) -> String {
-    let source_graphemes = source.graphemes(true).collect::<Vec<_>>();
-    destination
-        .graphemes(true)
-        .enumerate()
-        .map(|(index, grapheme)| {
-            if index >= start && index < end {
-                source_graphemes[index - start]
-            } else {
-                grapheme
-            }
-        })
-        .collect()
 }
 
 fn get_column(src: &str, pos: &Vector2i) -> String {
@@ -106,6 +89,17 @@ impl VimdowWindow {
 
     #[func]
     fn set_grid_size(&mut self, width: i32, height: i32) {
+        self.highlighter.bind_mut().set_hl_regions(
+            (0..=height)
+                .map(|_| {
+                    let mut out = PackedInt32Array::new();
+                    out.resize(width as usize);
+                    out.fill(0);
+                    out
+                })
+                .collect(),
+        );
+
         let mut row = " ".repeat(width as usize);
         row.push('\n');
         let mut text = row.repeat(height as usize);
@@ -145,8 +139,7 @@ impl VimdowWindow {
             .try_to()
             .unwrap_or(false);
 
-        let line = self.get_line(row);
-        let regions = self.highlighter.bind().get_regions(row, line.len());
+        let regions = self.highlighter.bind().get_regions(row);
         if !ignore_hl {
             // drawing background colors
             for r in regions.iter() {

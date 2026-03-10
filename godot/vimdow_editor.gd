@@ -93,21 +93,36 @@ func flush():
 	w.flush(hl, mode_info[mode_idx])
 
 var hl := {}
+static func rgb_to_color(rgb: int) -> Color:
+	return Color(
+		((rgb >> 16) & 0xFF) / 255.0,
+		((rgb >> 8) & 0xFF) / 255.0,
+		(rgb & 0xFF) / 255.0,
+		1.0
+	)
+
+func _add_hl(hl_id:int, attr: Dictionary):
+	for color_attr in ["foreground", "background", "special"]:
+		if attr.has(color_attr):
+			attr[color_attr] = rgb_to_color(attr[color_attr])
+	
+	hl[hl_id] = attr
 
 func default_colors_set(rgb_fg: int, rgb_bg: int, rgb_sp: int, _cterm_fg, _cterm_bg):
-	hl[0] = {
+	_add_hl(0, {
 		foreground = rgb_fg,
 		background = rgb_bg,
 		special = rgb_sp
-	}
+	})
+	$BgRect.modulate = hl[0].background
 
 func hl_attr_define(id: int, rgb_attr: Dictionary, 
 	_cterm_attr: Dictionary, _info: Array):
-	hl[id] = rgb_attr
+	_add_hl(id, rgb_attr)
 
 var hl_groups := {}
 func hl_group_set(group_name: String, hl_id: int):
-	hl_groups[group_name] = hl_id
+	hl_groups[hl_id] = group_name
 
 var mode_info: Array
 func mode_info_set(cursor_style_enabled: bool, mode_info: Array):
@@ -154,38 +169,28 @@ func grid_line(grid: int, row: int, col_start: int, cells: Array, wrapline: bool
 	_row_wraps[row] = wrapline
 	var old_line = w.get_line(row)
 	var line = old_line.substr(0, col_start)
-	var hl_cols := {}
 	var last_hl_id = null
 	var col_end = col_start
+	var regions = $VimdowWindow/Highlighter.hl_regions[row]
 	for cell in cells:
-		var start = line.length()
+		var col = col_end
 		match cell:
 			[var text, var hl_id, var repeat]:
 				line += text.repeat(repeat)
-				last_hl_id = hl_id
 				col_end += repeat
+				last_hl_id = hl_id
+				for i in repeat:
+					regions[col + i] = last_hl_id
 			[var text, var hl_id]:
 				line += text
-				last_hl_id = hl_id
 				col_end += 1
+				last_hl_id = hl_id
+				regions[col] = last_hl_id
 			[var text]:
 				line += text
 				col_end += 1
+				regions[col] = last_hl_id
 		assert(hl.has(last_hl_id))
-		
-		if hl_cols.is_empty() or hl_cols[hl_cols.keys().max()] != last_hl_id:
-			hl_cols[start] = last_hl_id
-	
-	var hl_regions = $VimdowWindow/Highlighter.hl_regions
-	if not hl_regions.has(row):
-		hl_regions[row] = {}
-	
-	for col in range(col_start, col_end):
-		hl_regions[row].erase(col)
-	
-	for col in hl_cols:
-		hl_regions[row][col] = hl_cols[col]
-	hl_regions[row].sort()
 	
 	line += old_line.substr(line.length())
 	w.set_line(row, line)
@@ -219,7 +224,6 @@ func grid_scroll(grid: int, top: int, bot: int,
 			continue
 		w.set_line(row, line)
 		$VimdowWindow/Highlighter.hl_regions[row] = regions
-	$VimdowWindow/Highlighter.hl_regions.sort()
 
 #region OPTION_SET
 var options := {}

@@ -1,7 +1,6 @@
 use godot::classes::{Control, Font, FontVariation, IControl};
 use godot::prelude::*;
-
-use crate::neovim::rgb_to_color;
+use itertools::Itertools;
 
 /// Creates rendering data based on the hl attributes
 /// defined by neovim. Returns structs applied with the appropriate theme
@@ -14,7 +13,7 @@ pub struct Highlighter {
     hl_data: VarDictionary,
 
     #[export]
-    hl_regions: VarDictionary,
+    hl_regions: Array<PackedInt32Array>,
 
     bold_font: Gd<FontVariation>,
     italic_font: Gd<FontVariation>,
@@ -90,7 +89,7 @@ type VD = VarDictionary;
 #[godot_api]
 impl Highlighter {
     // check ":h ui-event-hl_attr_define"
-    fn get_hl_attr(&self, hl_id: i32) -> HlAttr {
+    pub fn get_hl_attr(&self, hl_id: i32) -> HlAttr {
         let attr: VD = self.hl_data.at(hl_id).to();
         let font = if attr.contains_key("bold") {
             &self.bold_font
@@ -98,7 +97,8 @@ impl Highlighter {
             &self.italic_font
         } else {
             &self.normal_font
-        }.clone();
+        }
+        .clone();
 
         let (mut foreground, mut background) = (
             match self.get_attr_color(hl_id, HlAttrColor::Foreground) {
@@ -136,7 +136,7 @@ impl Highlighter {
     }
 
     fn get_default_color(&self, c: HlAttrColor) -> Color {
-        rgb_to_color(self.hl_data.at(0).to::<VD>().at(c.to_string()).to())
+        self.hl_data.at(0).to::<VD>().at(c.to_string()).to()
     }
 
     fn get_attr_color(&self, hl_id: i32, c: HlAttrColor) -> Result<Color, Color> {
@@ -144,63 +144,45 @@ impl Highlighter {
             .at(hl_id)
             .to::<VD>()
             .get(c.to_string())
-            .map(|rgb| rgb_to_color(rgb.to()))
+            .map(|rgb| rgb.to())
             .ok_or_else(|| self.get_default_color(c))
     }
 
     #[func]
     pub fn clear(&mut self) {
-        self.hl_regions.clear();
+        // self.hl_regions.clear();
+        for y in 0..self.hl_regions.len() {
+            self.hl_regions.at(y).fill(0);
+        }
     }
 
-    pub fn get_regions(&self, row: i32, line_len: usize) -> Vec<Region> {
-        let mut out = vec![];
-        if let Some(reg) = self.hl_regions.get(row) {
-            let reg = reg.to::<VD>();
-            let mut reg_iter = reg.iter_shared().peekable();
-            while let Some((current_col, hl_id)) = reg_iter.next() {
-                let (current_col, hl_id) = (current_col.to::<i32>() as usize, hl_id.to::<i32>());
-                let next_col = reg_iter
-                    .peek()
-                    .map(|(next_col, _)| next_col.to::<i32>() as usize)
-                    .unwrap_or(line_len);
+    pub fn get_regions(&self, row: i32) -> Vec<Region> {
+        let Some(row_regions) = self.hl_regions.get(row as usize) else {
+            return vec![];
+        };
 
-                assert!(
-                    current_col <= next_col,
-                    "current: {}, next: {}",
-                    current_col,
-                    next_col
-                );
-
-                out.push(Region {
-                    start_col: current_col,
-                    end_col: next_col,
+        row_regions
+            .as_slice()
+            .iter()
+            .map(|&n| n as i32)
+            .enumerate()
+            .chunk_by(|(_, hl_id)| *hl_id)
+            .into_iter()
+            .map(|(hl_id, mut chunk)| {
+                let (start_col, _) = chunk.next().unwrap();
+                let end_col = chunk.last().map(|(i, _)| i + 1).unwrap_or(start_col + 1);
+                Region {
+                    start_col,
+                    end_col,
                     attr: self.get_hl_attr(hl_id),
-                });
-            }
-        }
-
-        out
+                }
+            })
+            .collect()
     }
 
     pub fn get_cursor_attr(&self, cursor: &Vector2i) -> HlAttr {
-        let mut closest_col = -1;
-        let mut out_hl_id = 0;
-        for (col, hl_id) in self
-            .hl_regions
-            .get(cursor.y)
-            .unwrap_or_else(|| self.hl_data.at(0))
-            .to::<VD>()
-            .iter_shared()
-        {
-            let (col, hl_id) = (col.to::<i32>(), hl_id.to::<i32>());
-            if col > closest_col && col <= cursor.x {
-                closest_col = col;
-                out_hl_id = hl_id;
-            }
-        }
-
-        self.get_hl_attr(out_hl_id)
+        let cursor_hl_id = self.hl_regions.at(cursor.y as usize)[cursor.x as usize];
+        self.get_hl_attr(cursor_hl_id as i32)
     }
 }
 

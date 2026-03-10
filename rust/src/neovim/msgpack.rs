@@ -31,7 +31,7 @@ pub fn rmpv_to_godot(v: Value) -> Variant {
         }
         Value::String(s) => s.into_str().unwrap().to_variant(),
         Value::Boolean(b) => b.to_variant(),
-        Value::Binary(bin) => todo!(), // neovim doesn't use this yet
+        Value::Binary(_bin) => todo!(), // neovim doesn't use this yet
     }
 }
 
@@ -76,15 +76,6 @@ pub fn godot_to_rmpv(v: Variant) -> Value {
                 .collect(),
         ),
         _ => panic!("Can't represent {t:?} as message pack")
-    }
-}
-
-pub fn rgb_to_color(rgb: i32) -> Color {
-    Color {
-        r: ((rgb >> 16) & 0xFF) as f32 / 255.0,
-        g: ((rgb >> 8) & 0xFF) as f32 / 255.0,
-        b: (rgb & 0xFF) as f32 / 255.0,
-        a: 1.0
     }
 }
 
