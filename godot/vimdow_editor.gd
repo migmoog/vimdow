@@ -207,19 +207,7 @@ func grid_cursor_goto(grid: int, row: int, col: int):
 func grid_scroll(grid: int, top: int, bot: int, 
 	left: int, right: int, rows: int, _cols: int):
 	_grid_assert(grid)
-	
-<<<<<<< HEAD
-	var w: VimdowWindow = wm.get_child(0)
-	w.scroll(top, bot, left, right, rows)
-	#var lines := []
-	#for i in range(top, bot):
-		#lines.append(w.get_line(i))
-	#
-	#var dst_top := top - rows
-	#var dst_bot := bot - rows
-	#for i in range(dst_top, dst_bot):
-		#w.set_line(i, lines.pop_front())
-=======
+
 	var lines := []
 	var hl_regions := []
 	for i in range(top, bot):
@@ -236,7 +224,6 @@ func grid_scroll(grid: int, top: int, bot: int,
 			continue
 		w.set_line(row, line)
 		$VimdowWindow/Highlighter.hl_regions[row] = regions
->>>>>>> linegrid-refactor
 
 #region OPTION_SET
 var options := {}
