@@ -1,4 +1,3 @@
-
 use godot::{
     classes::{Control, IControl, ProjectSettings},
     obj::WithBaseField,
@@ -9,6 +8,7 @@ mod err;
 mod highlights;
 mod neovim;
 
+use ropey::Rope;
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::highlights::Highlighter;
@@ -37,7 +37,10 @@ struct VimdowWindow {
     base: Base<Control>,
 
     #[export(multiline)]
+    #[var(get = get_text)]
     text: GString,
+
+    grid_text: Rope,
 
     #[init(val = Vector2i {x: -1, y: -1})]
     #[var]
@@ -54,17 +57,12 @@ struct VimdowWindow {
 impl VimdowWindow {
     #[func]
     fn get_line_count(&self) -> i32 {
-        self.text.to_string().lines().map(|_| 1).sum()
+        self.grid_text.len_lines() as i32
     }
 
     #[func]
     fn get_line(&self, i: i32) -> String {
-        self.text
-            .to_string()
-            .lines()
-            .nth(i as usize)
-            .unwrap_or("")
-            .into()
+        self.grid_text.line(i as usize).to_string()
     }
 
     #[func]
@@ -75,16 +73,17 @@ impl VimdowWindow {
     }
 
     #[func]
+    fn get_text(&self) -> GString {
+        self.grid_text.to_string().to_godot()
+    }
+
+    #[func]
     fn set_line(&mut self, i: i32, text: String) {
-        self.text = self
-            .text
-            .to_string()
-            .lines()
-            .enumerate()
-            .map(|(num, line)| if num == i as usize { &text } else { line })
-            .collect::<Vec<_>>()
-            .join("\n")
-            .to_godot();
+        let i = i as usize;
+        let start = self.grid_text.line_to_char(i);
+        let end = self.grid_text.line_to_char(i + 1);
+        self.grid_text.remove(start..end);
+        self.grid_text.insert(start, &text);
     }
 
     #[func]
@@ -108,7 +107,7 @@ impl VimdowWindow {
             '\n',
             "Should remove last newline"
         );
-        self.text = text.to_godot();
+        self.grid_text = text.into();
     }
 
     #[func]
@@ -196,7 +195,7 @@ impl VimdowWindow {
                     .filled(true)
                     .done();
 
-                let region_text = get_column(&self.text.to_string().as_str(), &self.cursor);
+                let region_text = get_column(&self.grid_text.to_string(), &self.cursor);
                 self.base_mut()
                     .draw_string_ex(
                         &attr.font,

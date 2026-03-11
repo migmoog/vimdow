@@ -114,7 +114,9 @@ func default_colors_set(rgb_fg: int, rgb_bg: int, rgb_sp: int, _cterm_fg, _cterm
 		background = rgb_bg,
 		special = rgb_sp
 	})
-	$BgRect.modulate = hl[0].background
+	
+	if _is_standalone():
+		RenderingServer.set_default_clear_color(hl[0].background)
 
 func hl_attr_define(id: int, rgb_attr: Dictionary, 
 	_cterm_attr: Dictionary, _info: Array):
@@ -225,7 +227,6 @@ func grid_scroll(grid: int, top: int, bot: int,
 		var dst_line = w.get_line(row)
 		var line = dst_line.substr(0, left) + src_line.substr(left, right) + dst_line.substr(right)
 		w.set_line(row, line)
-		#$VimdowWindow/Highlighter.hl_regions[row] = regions
 		for i in range(left, right):
 			$VimdowWindow/Highlighter.hl_regions[row][i] = src_regions[i]
 
