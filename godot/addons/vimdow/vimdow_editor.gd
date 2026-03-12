@@ -102,7 +102,6 @@ func open_file(path: String):
 
 #region REDRAW_EVENTS
 func flush():
-	#assert(not hl.is_empty())
 	var  i := 0
 	var dbg = OS.is_debug_build()
 	while not _redraw_batch.is_empty():
@@ -239,7 +238,7 @@ func grid_cursor_goto(grid: int, row: int, col: int):
 func grid_scroll(grid: int, top: int, bot: int, 
 	left: int, right: int, rows: int, _cols: int):
 	_grid_assert(grid)
-
+	
 	var lines := []
 	var hl_regions := []
 	for i in range(top, bot):
@@ -255,7 +254,7 @@ func grid_scroll(grid: int, top: int, bot: int,
 		if row < top or row >= bot:
 			continue
 		var dst_line = w.get_line(row)
-		var line = dst_line.substr(0, left) + src_line.substr(left, right) + dst_line.substr(right)
+		var line = dst_line.substr(0, left) + src_line.substr(left, right - left) + dst_line.substr(right)
 		w.set_line(row, line)
 		for i in range(left, right):
 			$VimdowWindow/Highlighter.hl_regions[row][i] = src_regions[i]
