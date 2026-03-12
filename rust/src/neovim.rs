@@ -14,7 +14,7 @@ mod process;
 use process::NeovimProcess;
 
 #[derive(GodotClass)]
-#[class(base=Node, init)]
+#[class(tool, base=Node, init)]
 pub struct NeovimClient {
     base: Base<Node>,
     nvim_process: Option<NeovimProcess>,

@@ -31,7 +31,7 @@ fn get_column(src: &str, pos: &Vector2i) -> String {
 }
 
 #[derive(GodotClass)]
-#[class(init, base=Control)]
+#[class(tool, init, base=Control)]
 // Funny name
 struct VimdowWindow {
     base: Base<Control>,

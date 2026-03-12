@@ -1,3 +1,4 @@
+@tool
 extends MarginContainer
 
 ## Neovim ui docs state that there is only ever one
@@ -13,20 +14,23 @@ var mode_info: Array
 var hl := {}
 var hl_groups := {}
 var options := {}
-
 var cwd: String
 
 @export_file_path() var path_to_nvim: String = "/usr/bin/nvim"
 @onready var client = $NeovimClient
 @onready var w = $VimdowWindow
 
+var attached := false
+
 var _row_wraps: Array
-var _attached := false
 var _redraw_batch := []
 var _inputs_buffer: Array[InputEventKey] = []
 
-# Called when the node enters the scene tree for the first time.
 func _ready() -> void:
+	if not Engine.is_editor_hint():
+		start()
+
+func start() -> void:
 	if OS.is_debug_build():
 		_initialize_todos()
 		client.neovim_response.connect(self._log_responses)
@@ -44,20 +48,21 @@ func _ready() -> void:
 	if file:
 		client.request("nvim_command", ["e %s" % file])
 
-func _unhandled_key_input(event: InputEvent) -> void:
-	if not event.is_pressed():
+func _input(event: InputEvent) -> void:
+	if not attached or not event is InputEventKey or not event.is_pressed():
 		return
+	get_viewport().set_input_as_handled()
 	_inputs_buffer.append(event)
 
 func _process(_delta: float) -> void:
-	if _attached and not _inputs_buffer.is_empty():
+	if attached and not _inputs_buffer.is_empty():
 		client.flush_key_inputs(_inputs_buffer)
 
 func setup_ui():
-	assert(not _attached)
+	assert(not attached)
 	assert(client.is_running())
 	var initial_size := get_editor_grid_size(w.size)
-	_attached = client.attach(initial_size.x, initial_size.y)
+	attached = client.attach(initial_size.x, initial_size.y)
 
 # checks if vimdow is the standalone app or the editor plugin
 func _is_standalone() -> bool:
@@ -273,14 +278,14 @@ func _log_responses(msgid: int, error: Variant, result: Variant) -> void:
 #endregion
 
 func _on_window_resized() -> void:
-	if not is_node_ready() or not _attached:
+	if not is_node_ready() or not attached:
 		return
 	var s := get_editor_grid_size(w.size)
 	client.request("nvim_ui_try_resize", [s.x, s.y])
 
 #region STANDALONE_METHODS
 func _on_standalone_resized():
-	if not (is_node_ready() or _attached):
+	if not (is_node_ready() or attached):
 		return
 	set_deferred("size", get_tree().root.size)
 #endregion

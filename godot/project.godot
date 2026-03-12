@@ -13,7 +13,7 @@ config_version=5
 config/name="Vimdow"
 run/main_scene="uid://yboe2mkngo4w"
 config/features=PackedStringArray("4.6", "Forward Plus")
-config/icon="res://icon.svg"
+config/icon="res://addons/vimdow/icon.svg"
 
 [display]
 
@@ -22,7 +22,7 @@ window/size/viewport_height=720
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/TaskRunner/plugin.cfg")
+enabled=PackedStringArray("res://addons/TaskRunner/plugin.cfg", "res://addons/vimdow/plugin.cfg")
 
 [physics]
 

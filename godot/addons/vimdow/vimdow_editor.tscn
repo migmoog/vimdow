@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://yboe2mkngo4w"]
 
-[ext_resource type="Theme" uid="uid://o6govy1hbpq2" path="res://vimdow_theme.tres" id="1_gh56k"]
-[ext_resource type="Script" uid="uid://cinru25nrys1q" path="res://vimdow_editor.gd" id="1_k517p"]
-[ext_resource type="PackedScene" uid="uid://disu5t63djq7v" path="res://non_multigrid.tscn" id="3_bivy3"]
+[ext_resource type="Theme" uid="uid://o6govy1hbpq2" path="res://addons/vimdow/vimdow_theme.tres" id="1_gh56k"]
+[ext_resource type="Script" uid="uid://cinru25nrys1q" path="res://addons/vimdow/vimdow_editor.gd" id="1_k517p"]
+[ext_resource type="PackedScene" uid="uid://disu5t63djq7v" path="res://addons/vimdow/non_multigrid.tscn" id="3_bivy3"]
 
 [node name="VimdowEditor" type="MarginContainer" unique_id=909240016]
 anchors_preset = 15

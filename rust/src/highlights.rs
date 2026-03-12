@@ -5,7 +5,7 @@ use itertools::Itertools;
 /// Creates rendering data based on the hl attributes
 /// defined by neovim. Returns structs applied with the appropriate theme
 #[derive(GodotClass)]
-#[class(init, base = Control)]
+#[class(tool, init, base = Control)]
 pub struct Highlighter {
     base: Base<Control>,
 

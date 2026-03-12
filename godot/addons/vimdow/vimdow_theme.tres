@@ -1,7 +1,7 @@
 [gd_resource type="Theme" format=3 uid="uid://o6govy1hbpq2"]
 
-[ext_resource type="FontFile" uid="uid://bphvvqswh02kw" path="res://FiraCodeNerdFontMono-Bold.ttf" id="1_umg0i"]
-[ext_resource type="FontFile" uid="uid://b62h820uc86yo" path="res://FiraCodeNerdFont-Regular.ttf" id="2_hyhkx"]
+[ext_resource type="FontFile" uid="uid://bphvvqswh02kw" path="res://addons/vimdow/FiraCodeNerdFontMono-Bold.ttf" id="1_umg0i"]
+[ext_resource type="FontFile" uid="uid://b62h820uc86yo" path="res://addons/vimdow/FiraCodeNerdFont-Regular.ttf" id="2_hyhkx"]
 
 [sub_resource type="FontVariation" id="FontVariation_umg0i"]
 base_font = ExtResource("2_hyhkx")
