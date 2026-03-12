@@ -22,4 +22,3 @@ layout_mode = 2
 
 [connection signal="resized" from="VimdowWindow" to="." method="_on_window_resized"]
 [connection signal="neovim_event" from="NeovimClient" to="." method="_on_neovim_client_neovim_event"]
-[connection signal="neovim_response" from="NeovimClient" to="." method="_on_neovim_client_neovim_response"]

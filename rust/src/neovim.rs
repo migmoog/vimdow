@@ -1,5 +1,5 @@
-use godot::classes::{InputEvent, InputEventKey};
-use godot::global::Key;
+use godot::classes::{InputEventKey, InputEventWithModifiers, Os};
+use godot::global::{Key, KeyModifierMask};
 use godot::prelude::*;
 use rmpv::Value;
 use std::collections::HashMap;
@@ -13,77 +13,11 @@ use msgpack::rmpv_to_godot;
 mod process;
 use process::NeovimProcess;
 
-fn keyevent_to_nvim_symbol(key_event: Gd<InputEventKey>) -> String {
-    match key_event.get_keycode() {
-        Key::BACKSPACE => "<BS>".into(),
-        Key::TAB => "<Tab>".into(),
-        Key::ENTER => "<CR>".into(),
-        Key::ESCAPE => "<Esc>".into(),
-        Key::SPACE => "<Space>".into(),
-        Key::DELETE => "<Del>".into(),
-        Key::UP => "<Up>".into(),
-        Key::LEFT => "<Left>".into(),
-        Key::RIGHT => "<Right>".into(),
-        Key::DOWN => "<Down>".into(),
-
-        code if Key::F1.ord() <= code.ord() && code.ord() <= Key::F35.ord() => {
-            format!("<F{}>", code.ord() - Key::F1.ord() + 1)
-        }
-
-        Key::PAGEUP => "<PageUp>".into(),
-        Key::PAGEDOWN => "<PageDown>".into(),
-
-        _ => GString::chr(key_event.get_unicode() as i64).to_string(), // TODO: keypad keys
-    }
-}
-
-// for info on the modifiers: ":h keycodes"
-enum Modifier {
-    Shift,
-    Ctrl,
-    Alt,
-    Super,
-    // no meta key, not sure where it's needed
-}
-
-impl Modifier {
-    fn modify(&self, event: Gd<InputEventKey>) -> String {
-        let chr = char::from_u32(event.get_unicode()).expect("Not a parseable char");
-        match self {
-            Modifier::Shift => {
-                format!("<S-{}>", chr)
-            }
-            Modifier::Ctrl => {
-                format!("<C-{}>", chr)
-            }
-            Modifier::Alt => {
-                format!("<A-{}>", chr)
-            }
-            Modifier::Super => {
-                format!("<D-{}>", chr)
-            }
-        }
-    }
-
-    fn from_keycode(code: Key) -> Option<Self> {
-        match code {
-            Key::CTRL => Some(Self::Ctrl),
-            Key::ALT => Some(Self::Alt),
-            Key::SHIFT => Some(Self::Shift),
-            Key::META => Some(Self::Super),
-            _ => None,
-        }
-    }
-}
-
 #[derive(GodotClass)]
 #[class(base=Node, init)]
 pub struct NeovimClient {
     base: Base<Node>,
     nvim_process: Option<NeovimProcess>,
-
-    // any key that has something attached to it (ex: <C-...>)
-    modifier: Option<Modifier>,
 }
 
 #[godot_api]
@@ -148,6 +82,74 @@ impl NeovimClient {
     fn is_running(&self) -> bool {
         self.nvim_process.is_some()
     }
+
+    #[func]
+    fn flush_key_inputs(&mut self, mut inputs_buffer: Array<Gd<InputEventKey>>) {
+        let Some(np) = self.nvim_process.as_mut() else {
+            return;
+        };
+        let mut input = String::new();
+        for event in inputs_buffer.iter_shared() {
+            let kc = event.get_keycode();
+            // ignore modifier key events, should be lumped in with other inputs
+            if matches!(kc, Key::CTRL | Key::META | Key::SHIFT | Key::ALT) {
+                continue;
+            }
+
+            let map = HashMap::from([
+                ('C', event.is_ctrl_pressed()),
+                ('A', event.is_alt_pressed()),
+                ('M', event.is_meta_pressed()),
+                ('S', event.is_shift_pressed()),
+            ]);
+
+            let has_modifier = map.iter().any(|(_, &is_set)| is_set);
+            if has_modifier {
+                input.push('<');
+                for c in map
+                    .into_iter()
+                    .filter_map(|(c, is_set)| is_set.then_some(c))
+                {
+                    input.push(c);
+                    input.push('-');
+                }
+            }
+
+            match kc {
+                Key::ENTER => input.push_str(if has_modifier { "CR" } else { "<CR>" }),
+                Key::BACKSPACE => input.push_str(if has_modifier { "BS" } else { "<BS>" }),
+                Key::TAB => input.push_str(if has_modifier { "Tab" } else { "<Tab>" }),
+                Key::ESCAPE => input.push_str(if has_modifier { "Esc" } else { "<Esc>" }),
+                Key::SPACE => input.push_str(if has_modifier { "Space" } else { "<Space>" }),
+                Key::LESS => input.push_str(if has_modifier { "lt" } else { "<lt>" }),
+                Key::DELETE => input.push_str(if has_modifier { "Del" } else { "<Del>" }),
+                _ if Key::F1.ord() <= kc.ord() && kc.ord() <= Key::F12.ord() => {
+                    let fmt = format!("F{}", kc.ord() - Key::F1.ord() + 1);
+                    if has_modifier {
+                        input.push_str(&fmt);
+                    } else {
+                        input.push_str(&format!("<{}>", fmt));
+                    }
+                }
+                _ => {
+                    if let Some(c) = char::from_u32(if event.is_ctrl_pressed() {
+                        kc.ord() as u32
+                    } else {
+                        event.get_unicode()
+                    }) {
+                        input.push(c);
+                    }
+                }
+            }
+
+            if has_modifier {
+                input.push('>');
+            }
+        }
+
+        np.var_request("nvim_input", varray![input.to_godot()]);
+        inputs_buffer.clear();
+    }
 }
 
 #[godot_api]
@@ -185,37 +187,6 @@ impl INode for NeovimClient {
                 0 => godot_warn!("Haven't implemented requests yet"),
                 _ => godot_error!("Got a non-existent message type: {msgtype}"),
             }
-        }
-    }
-
-    fn unhandled_key_input(&mut self, event: Gd<InputEvent>) {
-        let (true, Ok(key_event)) = (
-            self.nvim_process.is_some(),
-            event.try_cast::<InputEventKey>(),
-        ) else {
-            return;
-        };
-
-        if let Some(modifier) = Modifier::from_keycode(key_event.get_keycode()) {
-            self.modifier = match self.modifier {
-                Some(_) if key_event.is_released() => None,
-                None if key_event.is_pressed() => Some(modifier),
-                _ => None,
-            };
-            return;
-        }
-
-        if key_event.get_keycode() == Key::CAPSLOCK {
-            return;
-        }
-
-        if key_event.is_pressed() {
-            let input = match &self.modifier {
-                Some(m) => m.modify(key_event),
-                None => keyevent_to_nvim_symbol(key_event),
-            };
-
-            self.request("nvim_input".to_string(), varray![input]);
         }
     }
 

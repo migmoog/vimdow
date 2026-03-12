@@ -7,6 +7,12 @@ extends MarginContainer
 var grid_index: int = 1
 var grid_width: int
 var grid_height: int
+var mode: String
+var mode_idx: int
+var mode_info: Array
+var hl := {}
+var hl_groups := {}
+var options := {}
 
 var cwd: String
 
@@ -14,10 +20,16 @@ var cwd: String
 @onready var client = $NeovimClient
 @onready var w = $VimdowWindow
 
+var _row_wraps: Array
+var _attached := false
+var _redraw_batch := []
+var _inputs_buffer: Array[InputEventKey] = []
+
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	if OS.is_debug_build():
 		_initialize_todos()
+		client.neovim_response.connect(self._log_responses)
 	
 	if _is_standalone():
 		var r = get_tree().root
@@ -32,7 +44,15 @@ func _ready() -> void:
 	if file:
 		client.request("nvim_command", ["e %s" % file])
 
-var _attached := false
+func _unhandled_key_input(event: InputEvent) -> void:
+	if not event.is_pressed():
+		return
+	_inputs_buffer.append(event)
+
+func _process(_delta: float) -> void:
+	if _attached and not _inputs_buffer.is_empty():
+		client.flush_key_inputs(_inputs_buffer)
+
 func setup_ui():
 	assert(not _attached)
 	assert(client.is_running())
@@ -56,24 +76,18 @@ func _on_neovim_client_neovim_event(method: String, params: Array) -> void:
 			if event_name == "flush":
 				flush()
 			else:
-				redraw_batch.push_back(event)
-
-
-func _on_neovim_client_neovim_response(msgid: int, error: Variant, result: Variant) -> void:
-	#print("msgid: %d, error: %s, result: %s" % [msgid, str(error), str(result)])
-	pass
+				_redraw_batch.push_back(event)
 
 func _grid_assert(grid: int):
 	assert(grid == grid_index, "Shouldn't receive an index for a different grid")
 
 #region REDRAW_EVENTS
-var redraw_batch: Array = []
 func flush():
 	#assert(not hl.is_empty())
 	var  i := 0
 	var dbg = OS.is_debug_build()
-	while not redraw_batch.is_empty():
-		var event: Array = redraw_batch.pop_front()
+	while not _redraw_batch.is_empty():
+		var event: Array = _redraw_batch.pop_front()
 		var event_name: String = event.pop_front()
 		if has_method(event_name):
 			for e in event:
@@ -92,7 +106,7 @@ func flush():
 	assert(not hl.is_empty())
 	w.flush(hl, mode_info[mode_idx])
 
-var hl := {}
+
 static func rgb_to_color(rgb: int) -> Color:
 	return Color(
 		((rgb >> 16) & 0xFF) / 255.0,
@@ -122,18 +136,15 @@ func hl_attr_define(id: int, rgb_attr: Dictionary,
 	_cterm_attr: Dictionary, _info: Array):
 	_add_hl(id, rgb_attr)
 
-var hl_groups := {}
 func hl_group_set(group_name: String, hl_id: int):
 	hl_groups[hl_id] = group_name
 
-var mode_info: Array
 func mode_info_set(cursor_style_enabled: bool, mode_info: Array):
 	# can't really see a case where it'd need to be false
 	assert(cursor_style_enabled)
 	self.mode_info = mode_info
 
-var mode: String
-var mode_idx: int
+
 func mode_change(mode: String, mode_idx: int):
 	self.mode = mode
 	self.mode_idx = mode_idx
@@ -150,7 +161,7 @@ func set_icon(icon: String):
 func chdir(dir: String):
 	cwd = dir
 
-var _row_wraps: Array
+
 func grid_resize(grid: int, width: int, height: int):
 	_grid_assert(grid)
 	grid_width = width
@@ -231,14 +242,13 @@ func grid_scroll(grid: int, top: int, bot: int,
 			$VimdowWindow/Highlighter.hl_regions[row][i] = src_regions[i]
 
 #region OPTION_SET
-var options := {}
 func option_set(opt_name: String, value: Variant):
 	options[opt_name] = value
 #endregion OPTION_SET
 
 #endregion REDRAW_EVENTS
 
-#region NEOVIM_IMPL_TRACKER
+#region DEBUG_INFO
 var _redraw_events
 var _option_set
 func _initialize_todos():
@@ -256,6 +266,10 @@ func _log_options():
 		true
 	) + ",\n\n")
 	_option_set.flush()
+	
+func _log_responses(msgid: int, error: Variant, result: Variant) -> void:
+	print("msgid: %d, error: %s, result: %s" % [msgid, str(error), str(result)])
+	pass
 #endregion
 
 func _on_window_resized() -> void:

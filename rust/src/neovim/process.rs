@@ -93,6 +93,7 @@ impl NeovimProcess {
         self.to.send(buf).expect("Couldn't send to write thread");
     }
 
+    #[deprecated]
     pub fn request<T>(&mut self, method: &str, params: &T)
     where
         T: Serialize + Sized,

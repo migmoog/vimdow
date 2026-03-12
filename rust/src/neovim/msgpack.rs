@@ -1,5 +1,5 @@
 use crate::neovim::ext_types::rmpv_ext_to_godot;
-use godot::prelude::*;
+use godot::{classes::InputEventKey, global::Key, prelude::*};
 use rmpv::Value;
 
 pub fn rmpv_to_godot(v: Value) -> Variant {
@@ -75,7 +75,7 @@ pub fn godot_to_rmpv(v: Variant) -> Value {
                 .map(|(v1, v2)| (godot_to_rmpv(v1), godot_to_rmpv(v2)))
                 .collect(),
         ),
-        _ => panic!("Can't represent {t:?} as message pack")
+        _ => panic!("Can't represent {t:?} as message pack"),
     }
 }
 
