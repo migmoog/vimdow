@@ -49,7 +49,10 @@ func start() -> void:
 		client.request("nvim_command", ["e %s" % file])
 
 func _input(event: InputEvent) -> void:
-	if not attached or not event is InputEventKey or not event.is_pressed():
+	if not attached or\
+		not visible or\
+		not event is InputEventKey or\
+		not event.is_pressed():
 		return
 	get_viewport().set_input_as_handled()
 	_inputs_buffer.append(event)
@@ -85,6 +88,17 @@ func _on_neovim_client_neovim_event(method: String, params: Array) -> void:
 
 func _grid_assert(grid: int):
 	assert(grid == grid_index, "Shouldn't receive an index for a different grid")
+
+## Opens a file in vimdow
+func open_file(path: String):
+	if attached:
+		client.request("nvim_cmd", [{
+			cmd = "e",
+			args = [path]
+		}, 
+		{
+			output = OS.is_debug_build()
+		}])
 
 #region REDRAW_EVENTS
 func flush():
