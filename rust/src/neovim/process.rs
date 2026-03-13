@@ -1,6 +1,7 @@
 use godot::prelude::*;
 use serde::Serialize;
 use std::collections::HashSet;
+use std::ffi::OsStr;
 use std::io::Write;
 use std::process::{Child, Command, Stdio};
 use std::sync::mpsc;
@@ -12,7 +13,7 @@ use crate::err::VimdowError;
 use crate::neovim::msgpack::godot_to_rmpv;
 
 pub struct NeovimProcess {
-    _child: Child,
+    child: Child,
     _from_handle: JoinHandle<()>,
     _to_handle: JoinHandle<()>,
     // the receiver that takes the decoded mspack values
@@ -25,13 +26,14 @@ pub struct NeovimProcess {
 }
 
 impl NeovimProcess {
-    pub fn new(program: &str) -> Result<Self, VimdowError> {
-        let mut child = Command::new(program)
-            .arg("--embed")
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .spawn()
-            .map_err(VimdowError::IO)?;
+    pub fn new(program: &str, nvim_args: &[impl AsRef<OsStr>]) -> Result<Self, VimdowError> {
+        let mut child_builder = Command::new(program);
+        child_builder.stdin(Stdio::piped()).stdout(Stdio::piped());
+        for arg in nvim_args {
+            child_builder.arg(arg);
+        }
+
+        let mut child = child_builder.spawn().map_err(VimdowError::IO)?;
 
         let (to, recv_in_process) = mpsc::channel::<Vec<u8>>();
         let mut stdin = child.stdin.take().expect("Stdin is not available");
@@ -58,13 +60,13 @@ impl NeovimProcess {
         });
 
         Ok(Self {
-            _child: child,
+            child: child,
             to,
             from,
             _from_handle: from_handle,
             _to_handle: to_handle,
             msgid: 0,
-            pending_requests: HashSet::new()
+            pending_requests: HashSet::new(),
         })
     }
 
@@ -80,9 +82,25 @@ impl NeovimProcess {
                 self.pending_requests.remove(&msgid),
                 "No msgid ({msgid}), exists"
             );
+        } else if !v.is_array() {
+            godot_print!("Received a non-rpc value: {}", v);
         }
 
         Some(v)
+    }
+
+    pub fn is_running(&mut self) -> bool {
+        match self.child.try_wait() {
+            Ok(Some(status)) => {
+                godot_print!("Neovim process exited with: {status}");
+                false
+            }
+            Ok(None) => true,
+            Err(e) => {
+                godot_error!("Neovim process is dead: {e}");
+                false
+            }
+        }
     }
 
     fn send_msgpack<T>(&self, args: &T)
@@ -115,7 +133,9 @@ impl NeovimProcess {
 
         // self.to.send(buf).expect("Couldn't send serialized variant");
         match self.to.send(buf) {
-            Err(se) => {godot_error!("{se}")}
+            Err(se) => {
+                godot_error!("{se}")
+            }
             _ => {}
         }
 

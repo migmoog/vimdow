@@ -3,12 +3,12 @@
 importer="font_data_dynamic"
 type="FontFile"
 uid="uid://bphvvqswh02kw"
-path="res://.godot/imported/FiraCodeNerdFontMono-Bold.ttf-b37e0f34d33ba7e3e1e0c1c6738daa43.fontdata"
+path="res://.godot/imported/FiraCodeNerdFontMono-Bold.ttf-0adb2d842ab14b1681c47eab8b30a86c.fontdata"
 
 [deps]
 
-source_file="res://addons/vimdow/FiraCodeNerdFontMono-Bold.ttf"
-dest_files=["res://.godot/imported/FiraCodeNerdFontMono-Bold.ttf-b37e0f34d33ba7e3e1e0c1c6738daa43.fontdata"]
+source_file="res://addons/vimdow/fonts/FiraCodeNerdFontMono-Bold.ttf"
+dest_files=["res://.godot/imported/FiraCodeNerdFontMono-Bold.ttf-0adb2d842ab14b1681c47eab8b30a86c.fontdata"]
 
 [params]
 

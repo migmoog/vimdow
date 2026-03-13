@@ -17,6 +17,7 @@ var options := {}
 var cwd: String
 
 @export_file_path() var path_to_nvim: String = "/usr/bin/nvim"
+@export_file_path() var startup_script: String
 @onready var client = $NeovimClient
 @onready var w = $VimdowWindow
 
@@ -40,7 +41,8 @@ func start() -> void:
 		assert(r.size.x == size.x and r.size.y == size.y)
 		r.size_changed.connect(_on_standalone_resized)
 	
-	client.spawn(path_to_nvim)
+	var args: Array[String] = ["--embed", "-S", ProjectSettings.globalize_path(startup_script)]
+	client.spawn(path_to_nvim, args)
 	await get_tree().create_timer(.1).timeout
 	setup_ui()
 	
@@ -58,8 +60,15 @@ func _input(event: InputEvent) -> void:
 	_inputs_buffer.append(event)
 
 func _process(_delta: float) -> void:
+	if not client.is_running():
+		quit()
+	
 	if attached and not _inputs_buffer.is_empty():
 		client.flush_key_inputs(_inputs_buffer)
+
+func quit():
+	if _is_standalone():
+		get_tree().quit()
 
 func setup_ui():
 	assert(not attached)

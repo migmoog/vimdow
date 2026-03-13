@@ -16,6 +16,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme = ExtResource("1_gh56k")
 script = ExtResource("1_k517p")
+startup_script = "res://addons/vimdow/lua/vimdow.lua"
 
 [node name="VimdowWindow" parent="." unique_id=664027018 instance=ExtResource("3_bivy3")]
 layout_mode = 2

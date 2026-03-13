@@ -44,8 +44,13 @@ impl NeovimClient {
     }
 
     #[func]
-    fn spawn(&mut self, program: String) -> bool {
-        match NeovimProcess::new(&program) {
+    fn spawn(&mut self, program: String, args: Array<GString>) -> bool {
+        let mut args_vec = vec![];
+        for i in 0..args.len() {
+            let args = args.at(i);
+            args_vec.push(args.to_string());
+        }
+        match NeovimProcess::new(&program, args_vec.as_slice()) {
             Ok(np) => {
                 self.nvim_process = Some(np);
                 true
@@ -86,8 +91,11 @@ impl NeovimClient {
     }
 
     #[func]
-    fn is_running(&self) -> bool {
-        self.nvim_process.is_some()
+    fn is_running(&mut self) -> bool {
+        match &mut self.nvim_process {
+            Some(np) => np.is_running(),
+            None => false,
+        }
     }
 
     #[func]

@@ -22,7 +22,9 @@ func _handles(object: Object) -> bool:
 	return object is Script
 
 func _edit(object: Object):
-	print("getting called")
+	if object == null:
+		return
+	
 	EditorInterface.set_main_screen_editor(MAIN_SCREEN_NAME)
 	editor.open_file(ProjectSettings.globalize_path(object.resource_path))
 

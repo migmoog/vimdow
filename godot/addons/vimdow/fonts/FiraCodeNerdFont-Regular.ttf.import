@@ -3,12 +3,12 @@
 importer="font_data_dynamic"
 type="FontFile"
 uid="uid://b62h820uc86yo"
-path="res://.godot/imported/FiraCodeNerdFont-Regular.ttf-789037ddc1c4e3410d710415b635a9f9.fontdata"
+path="res://.godot/imported/FiraCodeNerdFont-Regular.ttf-8ded484b0894cde5feb046eaa2ffe1aa.fontdata"
 
 [deps]
 
-source_file="res://addons/vimdow/FiraCodeNerdFont-Regular.ttf"
-dest_files=["res://.godot/imported/FiraCodeNerdFont-Regular.ttf-789037ddc1c4e3410d710415b635a9f9.fontdata"]
+source_file="res://addons/vimdow/fonts/FiraCodeNerdFont-Regular.ttf"
+dest_files=["res://.godot/imported/FiraCodeNerdFont-Regular.ttf-8ded484b0894cde5feb046eaa2ffe1aa.fontdata"]
 
 [params]
 
