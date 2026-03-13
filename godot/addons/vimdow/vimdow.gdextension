@@ -4,11 +4,13 @@ compatibility_minimum = 4.1
 reloadable = true
 
 [libraries]
-linux.debug.x86_64 =     "res://../rust/target/debug/libvimdow.so"
-linux.release.x86_64 =   "res://../rust/target/release/libvimdow.so"
-windows.debug.x86_64 =   "res://../rust/target/debug/vimdow.dll"
-windows.release.x86_64 = "res://../rust/target/release/vimdow.dll"
-macos.debug =            "res://../rust/target/debug/libvimdow.dylib"
-macos.release =          "res://../rust/target/release/libvimdow.dylib"
-macos.debug.arm64 =      "res://../rust/target/debug/libvimdow.dylib"
-macos.release.arm64 =    "res://../rust/target/release/libvimdow.dylib"
+linux.debug.x86_64 =     "res://addons/vimdow/bin/libvimdow.so"
+linux.release.x86_64 =   "res://addons/vimdow/bin/libvimdow.so"
+
+windows.debug.x86_64 =   "res://addons/vimdow/bin/vimdow.dll"
+windows.release.x86_64 =  "res://addons/vimdow/bin/vimdow.dll"
+
+macos.debug =             "res://addons/vimdow/bin/libvimdow.dylib"
+macos.release =           "res://addons/vimdow/bin/libvimdow.dylib"
+macos.debug.arm64 =       "res://addons/vimdow/bin/libvimdow.dylib"
+macos.release.arm64 =     "res://addons/vimdow/bin/libvimdow.dylib"

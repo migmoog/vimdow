@@ -19,3 +19,6 @@ nvim_todos
 
 # IDE workflow
 Session.vim
+
+# Local build files
+godot/addons/vimdow/bin
