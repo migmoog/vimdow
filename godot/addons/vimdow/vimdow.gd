@@ -10,10 +10,6 @@ func _enter_tree() -> void:
 	editor = EDITOR.instantiate()
 	EditorInterface.get_editor_main_screen().add_child(editor)
 	
-	EditorInterface.get_script_editor()\
-		.editor_script_changed\
-		.connect(_on_script_changed)
-	
 	editor.call_deferred("start")
 	_make_visible(false)
 
@@ -22,9 +18,13 @@ func _exit_tree() -> void:
 	if editor:
 		editor.queue_free()
 
-func _on_script_changed(script: Script):
+func _handles(object: Object) -> bool:
+	return object is Script
+
+func _edit(object: Object):
+	print("getting called")
 	EditorInterface.set_main_screen_editor(MAIN_SCREEN_NAME)
-	editor.open_file(ProjectSettings.globalize_path(script.resource_path))
+	editor.open_file(ProjectSettings.globalize_path(object.resource_path))
 
 func _has_main_screen() -> bool:
 	return true
