@@ -1,5 +1,5 @@
 use crate::neovim::ext_types::rmpv_ext_to_godot;
-use godot::{classes::InputEventKey, global::Key, prelude::*};
+use godot::prelude::*;
 use rmpv::Value;
 
 pub fn rmpv_to_godot(v: Value) -> Variant {

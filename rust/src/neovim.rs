@@ -13,6 +13,13 @@ use msgpack::rmpv_to_godot;
 mod process;
 use process::NeovimProcess;
 
+fn is_special_symbol(kc: Key) -> bool {
+    matches!(
+        kc,
+        Key::BACKSPACE | Key::TAB | Key::ENTER | Key::SPACE | Key::ESCAPE | Key::LESS
+    )
+}
+
 #[derive(GodotClass)]
 #[class(tool, base=Node, init)]
 pub struct NeovimClient {
@@ -103,8 +110,12 @@ impl NeovimClient {
                 ('S', event.is_shift_pressed()),
             ]);
 
+            let only_shift = map
+                .iter()
+                .all(|(&c, &is_set)| if c == 'S' { is_set } else { !is_set });
             let has_modifier = map.iter().any(|(_, &is_set)| is_set);
-            if has_modifier {
+            let regular_shifted_symbol = only_shift && !is_special_symbol(kc);
+            if !regular_shifted_symbol && has_modifier {
                 input.push('<');
                 for c in map
                     .into_iter()
@@ -142,7 +153,7 @@ impl NeovimClient {
                 }
             }
 
-            if has_modifier {
+            if !regular_shifted_symbol && has_modifier {
                 input.push('>');
             }
         }
