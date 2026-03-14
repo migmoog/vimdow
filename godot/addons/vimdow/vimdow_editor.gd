@@ -17,7 +17,6 @@ var hl_groups := {}
 var options := {}
 var cwd: String
 
-@export_file_path() var path_to_nvim: String = "/usr/bin/nvim"
 @export_file_path() var startup_script: String
 @onready var client = $NeovimClient
 @onready var w = $VimdowWindow
@@ -74,13 +73,13 @@ func start() -> void:
 		r.size_changed.connect(_on_standalone_resized)
 	
 	var args: Array[String] = ["--embed", "-S", ProjectSettings.globalize_path(startup_script)]
-	client.spawn(path_to_nvim, args)
+	client.spawn(ProjectSettings.get_setting("vimdow/path_to_nvim"), args)
 	await get_tree().create_timer(.1).timeout
 	setup_ui()
 	
 	var file = ProjectSettings.get_setting("vimdow/edit_file")
 	if file:
-		client.request("nvim_command", ["e %s" % file])
+		open_file(file)
 
 func _input(event: InputEvent) -> void:
 	if not attached or\

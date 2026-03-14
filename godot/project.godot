@@ -61,3 +61,4 @@ tasks=[{
 
 edit_file=""
 debug/ingore_hl=false
+path_to_nvim="/usr/bin/nvim"
