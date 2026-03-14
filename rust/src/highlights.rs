@@ -74,7 +74,9 @@ impl IControl for Highlighter {
 pub struct HlAttr {
     pub foreground: Color,
     pub background: Color,
+    pub special: Color,
     pub font: Gd<FontVariation>,
+    pub undercurl: bool,
     pub font_size: i32,
     pub char_size: Vector2,
 }
@@ -83,6 +85,11 @@ pub struct Region {
     pub start_col: usize,
     pub end_col: usize,
     pub attr: HlAttr,
+}
+impl Region {
+    pub fn len(&self) -> usize {
+        self.end_col - self.start_col
+    }
 }
 
 type VD = VarDictionary;
@@ -115,6 +122,11 @@ impl Highlighter {
             (foreground, background) = (background, foreground);
         }
 
+        let special = match self.get_attr_color(hl_id, HlAttrColor::Special) {
+            Ok(fg) => fg,
+            Err(bg) => bg,
+        };
+
         let font_size = self
             .base()
             .get_theme_font_size_ex("font_size")
@@ -126,10 +138,14 @@ impl Highlighter {
             .unwrap()
             .get_char_size(' ' as u32, font_size);
 
+        let undercurl = attr.contains_key("undercurl");
+
         HlAttr {
             foreground,
             background,
+            special,
             font,
+            undercurl,
             font_size,
             char_size,
         }

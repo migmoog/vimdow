@@ -1,8 +1,8 @@
-use godot::{
-    classes::{Control, IControl, ProjectSettings},
-    obj::WithBaseField,
-    prelude::*,
-};
+use std::f64::consts::{PI, TAU};
+
+use godot::classes::{Control, Curve, IControl, ProjectSettings};
+use godot::global::cos;
+use godot::{global::sin, obj::WithBaseField, prelude::*};
 
 mod err;
 mod highlights;
@@ -36,10 +36,6 @@ fn get_column(src: &str, pos: &Vector2i) -> String {
 struct VimdowWindow {
     base: Base<Control>,
 
-    #[export(multiline)]
-    #[var(get = get_text)]
-    text: GString,
-
     grid_text: Rope,
 
     #[init(val = Vector2i {x: -1, y: -1})]
@@ -70,11 +66,6 @@ impl VimdowWindow {
         let y = self.get_line_count();
         let x = self.get_line(0).len() as i32;
         Vector2i { x, y }
-    }
-
-    #[func]
-    fn get_text(&self) -> GString {
-        self.grid_text.to_string().to_godot()
     }
 
     #[func]
@@ -181,6 +172,39 @@ impl VimdowWindow {
                     r.attr.foreground
                 })
                 .done();
+
+            if row == self.cursor.y
+                && r.start_col <= self.cursor.x as usize
+                && self.cursor.x as usize <= r.end_col
+            {
+                self.draw_cursor();
+            }
+
+            if r.attr.undercurl {
+                let line_width = r.attr.font_size as f32 * 0.1;
+                let desc = r.attr.font.get_descent() as f64;
+                let amplitude = desc / 2.0;
+                let l = r.len();
+                const STEPS_PER_CYCLE: usize = 8;
+                let total_span = l * STEPS_PER_CYCLE;
+                let mut points = PackedVector2Array::new();
+                for i in 0..total_span {
+                    let t = i as f64 / total_span as f64;
+                    let y = text_position.y as f64
+                        + amplitude
+                        + -cos(l as f64 * t * TAU)
+                            * amplitude as f64;
+                    let p = Vector2::new(
+                        text_position.x + t as f32 * l as f32 * r.attr.char_size.x,
+                        y as f32,
+                    );
+                    points.push(p);
+                }
+                self.base_mut()
+                    .draw_polyline_ex(&points, r.attr.special)
+                    .width(line_width)
+                    .done();
+            }
         }
     }
 
@@ -243,10 +267,6 @@ impl IControl for VimdowWindow {
     fn draw(&mut self) {
         for i in 0..self.get_line_count() {
             self.draw_row(i);
-        }
-
-        if self.cursor.x >= 0 && self.cursor.y >= 0 {
-            self.draw_cursor();
         }
     }
 }
