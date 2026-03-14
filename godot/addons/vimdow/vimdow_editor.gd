@@ -1,4 +1,5 @@
 @tool
+class_name VimdowEditor
 extends MarginContainer
 
 ## Neovim ui docs state that there is only ever one
@@ -27,9 +28,40 @@ var _row_wraps: Array
 var _redraw_batch := []
 var _inputs_buffer: Array[InputEventKey] = []
 
+
+#region SHORTCUTS
+var increase_fontsize_shortcut: Shortcut
+var decrease_fontsize_shortcut: Shortcut
+#endregion
+
+func _init() -> void:
+	increase_fontsize_shortcut = Shortcut.new()
+	decrease_fontsize_shortcut = Shortcut.new()
+
+	var ifev = InputEventKey.new()
+	ifev.ctrl_pressed = true
+	ifev.keycode = KEY_EQUAL
+	increase_fontsize_shortcut.events = [ifev]
+	
+	var dfev = InputEventKey.new()
+	dfev.ctrl_pressed = true
+	dfev.keycode = KEY_MINUS
+	decrease_fontsize_shortcut.events = [dfev]
+
+
 func _ready() -> void:
-	if not Engine.is_editor_hint():
+	if Engine.is_editor_hint():
+		var es := EditorInterface.get_editor_settings()
+		es.add_shortcut("vimdow/increase_font_size", increase_fontsize_shortcut)
+		es.add_shortcut("vimdow/decrease_font_size", decrease_fontsize_shortcut)
+	else:
 		start()
+
+func _exit_tree() -> void:
+	if Engine.is_editor_hint():
+		var es := EditorInterface.get_editor_settings()
+		es.remove_shortcut("vimdow/increase_font_size")
+		es.remove_shortcut("vimdow/decrease_font_size")
 
 func start() -> void:
 	if OS.is_debug_build():
@@ -56,8 +88,16 @@ func _input(event: InputEvent) -> void:
 		not event is InputEventKey or\
 		not event.is_pressed():
 		return
+	
+	if increase_fontsize_shortcut.matches_event(event):
+		theme.set_font_size("font_size", "VimdowEditor", theme.get_font_size("font_size", "VimdowEditor") + 1)
+		_on_window_resized()
+	elif decrease_fontsize_shortcut.matches_event(event):
+		theme.set_font_size("font_size", "VimdowEditor", theme.get_font_size("font_size", "VimdowEditor") - 1)
+		_on_window_resized()
+	else:
+		_inputs_buffer.append(event)
 	get_viewport().set_input_as_handled()
-	_inputs_buffer.append(event)
 
 func _process(_delta: float) -> void:
 	if not client.is_running():

@@ -4,7 +4,7 @@ extends EditorPlugin
 const MAIN_SCREEN_NAME = "Vimdow"
 const EDITOR = preload("res://addons/vimdow/vimdow_editor.tscn")
 
-var editor = null
+var editor: VimdowEditor
 
 func _enter_tree() -> void:
 	editor = EDITOR.instantiate()
