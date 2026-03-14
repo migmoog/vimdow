@@ -72,7 +72,13 @@ func start() -> void:
 		assert(r.size.x == size.x and r.size.y == size.y)
 		r.size_changed.connect(_on_standalone_resized)
 	
-	var args: Array[String] = ["--embed", "-S", ProjectSettings.globalize_path(startup_script)]
+	OS.set_environment("GODOT_LANGSERVER_PORT", str(EditorInterface.get_editor_settings()\
+			.get_setting("network/language_server/remote_port")))
+	var args: Array[String] = [
+		"--embed",
+		"-S",
+		ProjectSettings.globalize_path(startup_script),
+	]
 	client.spawn(ProjectSettings.get_setting("vimdow/path_to_nvim"), args)
 	await get_tree().create_timer(.1).timeout
 	setup_ui()

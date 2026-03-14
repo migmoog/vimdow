@@ -1,5 +1,5 @@
-use thiserror::Error;
 use std::io;
+use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum VimdowError {
@@ -7,5 +7,5 @@ pub enum VimdowError {
     NeovimCrashed,
 
     #[error("IO Error: {0}")]
-    IO(io::Error)
+    IO(io::Error),
 }
