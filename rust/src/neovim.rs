@@ -1,9 +1,10 @@
-use godot::classes::{InputEventKey, InputEventWithModifiers, Os};
-use godot::global::{Key, KeyModifierMask};
+use godot::classes::{
+    InputEventKey, InputEventMouse, InputEventMouseButton, InputEventWithModifiers, Os,
+};
+use godot::global::{Key, KeyModifierMask, MouseButton, MouseButtonMask};
 use godot::prelude::*;
 use rmpv::Value;
 use std::collections::HashMap;
-
 mod ext_types;
 mod msgpack;
 
@@ -167,6 +168,83 @@ impl NeovimClient {
         }
 
         np.var_request("nvim_input", varray![input.to_godot()]);
+        inputs_buffer.clear();
+    }
+
+    #[func]
+    fn flush_mouse_inputs(
+        &mut self,
+        grid_index: i32,
+        event_position: PackedVector2Array,
+        mut inputs_buffer: Array<Gd<InputEventMouse>>,
+    ) {
+        let Some(np) = self.nvim_process.as_mut() else {
+            return;
+        };
+        assert!(
+            event_position.len() == inputs_buffer.len(),
+            "Events should have parallel events to positions"
+        );
+        for (event, &pos) in inputs_buffer.iter_shared().zip(event_position.as_slice()) {
+            let mut modifiers = String::new();
+            if event.is_ctrl_pressed() {
+                modifiers.push('C');
+            }
+            if event.is_alt_pressed() {
+                modifiers.push('A');
+            }
+            if event.is_shift_pressed() {
+                modifiers.push('S');
+            }
+            if event.is_meta_pressed() {
+                modifiers.push('M');
+            }
+            if let Ok(event) = event.try_cast::<InputEventMouseButton>() {
+                let ord = event.get_button_mask().ord();
+
+                let mut action = (ord & MouseButtonMask::LEFT.ord() != 0
+                    || ord & MouseButtonMask::RIGHT.ord() != 0)
+                    .then_some(if event.is_pressed() {
+                        "press"
+                    } else {
+                        "release"
+                    });
+                let button = match event.get_button_index() {
+                    MouseButton::LEFT => "left",
+                    MouseButton::RIGHT => "right",
+                    MouseButton::MIDDLE => "middle",
+                    MouseButton::XBUTTON1 => "x1",
+                    MouseButton::XBUTTON2 => "x2",
+                    MouseButton::WHEEL_UP => {
+                        action = Some("up");
+                        "wheel"
+                    }
+                    MouseButton::WHEEL_DOWN => {
+                        action = Some("down");
+                        "wheel"
+                    }
+                    MouseButton::WHEEL_LEFT => {
+                        action = Some("left");
+                        "wheel"
+                    }
+                    MouseButton::WHEEL_RIGHT => {
+                        action = Some("right");
+                        "wheel"
+                    }
+                    _ => unreachable!(),
+                };
+
+                if let Some(action) = action {
+                    np.var_request(
+                        "nvim_input_mouse",
+                        varray![button, action, modifiers, grid_index, pos.y as i32, pos.x as i32],
+                    );
+                } else {
+                    godot_warn!("Unimplemented mouse button: {event}");
+                }
+            }
+        }
+
         inputs_buffer.clear();
     }
 }

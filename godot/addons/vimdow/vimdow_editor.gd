@@ -26,6 +26,9 @@ var attached := false
 var _row_wraps: Array
 var _redraw_batch := []
 var _inputs_buffer: Array[InputEventKey] = []
+var _mouse_buffer: Array[InputEventMouse] = []
+var _redraw_events
+var _option_set
 
 
 #region SHORTCUTS
@@ -49,15 +52,15 @@ func _init() -> void:
 
 
 func _ready() -> void:
-	if Engine.is_editor_hint():
+	if _is_standalone():
+		call_deferred("start")
+	else:
 		var es := EditorInterface.get_editor_settings()
 		es.add_shortcut("vimdow/increase_font_size", increase_fontsize_shortcut)
 		es.add_shortcut("vimdow/decrease_font_size", decrease_fontsize_shortcut)
-	else:
-		start()
 
 func _exit_tree() -> void:
-	if Engine.is_editor_hint():
+	if not _is_standalone():
 		var es := EditorInterface.get_editor_settings()
 		es.remove_shortcut("vimdow/increase_font_size")
 		es.remove_shortcut("vimdow/decrease_font_size")
@@ -71,9 +74,9 @@ func start() -> void:
 		var r = get_tree().root
 		assert(r.size.x == size.x and r.size.y == size.y)
 		r.size_changed.connect(_on_standalone_resized)
+	else:
+		OS.set_environment("GODOT_LANGSERVER_PORT", str(EditorInterface.get_editor_settings().get_setting("network/language_server/remote_port")))
 	
-	OS.set_environment("GODOT_LANGSERVER_PORT", str(EditorInterface.get_editor_settings()\
-			.get_setting("network/language_server/remote_port")))
 	var args: Array[String] = [
 		"--embed",
 		"-S",
@@ -87,33 +90,51 @@ func start() -> void:
 	if file:
 		open_file(file)
 
+
+func _acceptable_key(e: InputEvent) -> bool:
+	return attached and visible\
+			and (e is InputEventKey and e.is_pressed())
+
+
 func _input(event: InputEvent) -> void:
-	if not attached or\
-		not visible or\
-		not event is InputEventKey or\
-		not event.is_pressed():
-		return
-	
-	if increase_fontsize_shortcut.matches_event(event):
-		theme.set_font_size("font_size", "VimdowEditor", theme.get_font_size("font_size", "VimdowEditor") + 1)
-		_on_window_resized()
-	elif decrease_fontsize_shortcut.matches_event(event):
-		theme.set_font_size("font_size", "VimdowEditor", theme.get_font_size("font_size", "VimdowEditor") - 1)
-		_on_window_resized()
-	else:
+	if _acceptable_key(event):
+		get_viewport().set_input_as_handled()
+		if increase_fontsize_shortcut.matches_event(event):
+			theme.set_font_size("font_size", "VimdowEditor", theme.get_font_size("font_size", "VimdowEditor") + 1)
+			_on_window_resized()
+		elif decrease_fontsize_shortcut.matches_event(event):
+			theme.set_font_size("font_size", "VimdowEditor", theme.get_font_size("font_size", "VimdowEditor") - 1)
+			_on_window_resized()
 		_inputs_buffer.append(event)
-	get_viewport().set_input_as_handled()
+	elif event is InputEventMouse:
+		_mouse_buffer.append(event)
+	else:
+		return
+
 
 func _process(_delta: float) -> void:
 	if not client.is_running():
 		quit()
 	
-	if attached and not _inputs_buffer.is_empty():
-		client.flush_key_inputs(_inputs_buffer)
+	if attached:
+		if not _inputs_buffer.is_empty():
+			client.flush_key_inputs(_inputs_buffer)
+		elif not _mouse_buffer.is_empty():
+			var gsize = Vector2( get_editor_grid_size(size) )
+			var event_pos = PackedVector2Array(_mouse_buffer.map(func(e):
+				var out := Vector2i((e.position / gsize).floor())
+				while out.y >= 0 and _row_wraps[out.y - 1]:
+					out.y -= 1
+				return Vector2(out) ))
+			client.flush_mouse_inputs(grid_index, event_pos, _mouse_buffer)
+
 
 func quit():
 	if _is_standalone():
 		get_tree().quit()
+	else:
+		call_deferred("start")
+
 
 func setup_ui():
 	assert(not attached)
@@ -121,15 +142,18 @@ func setup_ui():
 	var initial_size := get_editor_grid_size(w.size)
 	attached = client.attach(initial_size.x, initial_size.y)
 
+
 # checks if vimdow is the standalone app or the editor plugin
 func _is_standalone() -> bool:
-	return get_parent() is Window
+	return not Engine.is_editor_hint()
+
 
 func get_editor_grid_size(s: Vector2) -> Vector2i:
 	var font_size = theme.get_font_size("font_size", "VimdowEditor")
 	var char_size: Vector2 = theme.get_font("normal", "VimdowEditor")\
 		.get_char_size(ord(" "), font_size)
 	return Vector2i((s/char_size).round())
+
 
 func _on_neovim_client_neovim_event(method: String, params: Array) -> void:
 	if method == "redraw":
@@ -140,8 +164,10 @@ func _on_neovim_client_neovim_event(method: String, params: Array) -> void:
 			else:
 				_redraw_batch.push_back(event)
 
+
 func _grid_assert(grid: int):
 	assert(grid == grid_index, "Shouldn't receive an index for a different grid")
+
 
 ## Opens a file in vimdow
 func open_file(path: String):
@@ -153,6 +179,7 @@ func open_file(path: String):
 		{
 			output = OS.is_debug_build()
 		}])
+
 
 #region REDRAW_EVENTS
 func flush():
@@ -187,12 +214,14 @@ static func rgb_to_color(rgb: int) -> Color:
 		1.0
 	)
 
+
 func _add_hl(hl_id:int, attr: Dictionary):
 	for color_attr in ["foreground", "background", "special"]:
 		if attr.has(color_attr):
 			attr[color_attr] = rgb_to_color(attr[color_attr])
 	
 	hl[hl_id] = attr
+
 
 func default_colors_set(rgb_fg: int, rgb_bg: int, rgb_sp: int, _cterm_fg, _cterm_bg):
 	_add_hl(0, {
@@ -204,12 +233,15 @@ func default_colors_set(rgb_fg: int, rgb_bg: int, rgb_sp: int, _cterm_fg, _cterm
 	if _is_standalone():
 		RenderingServer.set_default_clear_color(hl[0].background)
 
+
 func hl_attr_define(id: int, rgb_attr: Dictionary, 
 	_cterm_attr: Dictionary, _info: Array):
 	_add_hl(id, rgb_attr)
 
+
 func hl_group_set(group_name: String, hl_id: int):
 	hl_groups[hl_id] = group_name
+
 
 func mode_info_set(cursor_style_enabled: bool, mode_info: Array):
 	# can't really see a case where it'd need to be false
@@ -221,14 +253,17 @@ func mode_change(mode: String, mode_idx: int):
 	self.mode = mode
 	self.mode_idx = mode_idx
 
+
 func set_title(title: String):
 	if _is_standalone():
 		get_tree().root.title = title
+
 
 func set_icon(icon: String):
 	if _is_standalone():
 		var r = get_tree().root
 		r.title = r.title.insert(0, icon + " ")
+
 
 func chdir(dir: String):
 	cwd = dir
@@ -243,11 +278,13 @@ func grid_resize(grid: int, width: int, height: int):
 		_row_wraps.append(false)
 	w.set_grid_size(width, height)
 
+
 # this shouldn't be sent if ext_multigrid == false.
 # might be a bug but have this to just get it out of logs 
 func win_viewport(_grid: int, _win: int, _topline: int, _botline: int, 
 	_curline: int, _curcol: int, _line_count: int, _scroll_delta: int):
 	return
+
 
 func grid_line(grid: int, row: int, col_start: int, cells: Array, wrapline: bool):
 	_grid_assert(grid)
@@ -280,14 +317,17 @@ func grid_line(grid: int, row: int, col_start: int, cells: Array, wrapline: bool
 	line += old_line.substr(line.length())
 	w.set_line(row, line)
 
+
 func grid_clear(grid: int):
 	_grid_assert(grid)
 	w.clear()
+
 
 func grid_cursor_goto(grid: int, row: int, col: int):
 	_grid_assert(grid)
 	w.cursor.x = col
 	w.cursor.y = row
+
 
 func grid_scroll(grid: int, top: int, bot: int, 
 	left: int, right: int, rows: int, _cols: int):
@@ -313,6 +353,7 @@ func grid_scroll(grid: int, top: int, bot: int,
 		for i in range(left, right):
 			$VimdowWindow/Highlighter.hl_regions[row][i] = src_regions[i]
 
+
 #region OPTION_SET
 func option_set(opt_name: String, value: Variant):
 	options[opt_name] = value
@@ -321,14 +362,13 @@ func option_set(opt_name: String, value: Variant):
 #endregion REDRAW_EVENTS
 
 #region DEBUG_INFO
-var _redraw_events
-var _option_set
 func _initialize_todos():
 	const TODOS_PATH = "res://../nvim_todos"
 	if not DirAccess.dir_exists_absolute(TODOS_PATH):
 		DirAccess.make_dir_absolute(TODOS_PATH)
 	_redraw_events  = FileAccess.open(TODOS_PATH.path_join("redraw_events.txt"), FileAccess.WRITE)
 	_option_set = FileAccess.open(TODOS_PATH.path_join("option_set.json"), FileAccess.WRITE)
+
 
 func _log_options():
 	_option_set.store_string(JSON.stringify(
@@ -338,11 +378,13 @@ func _log_options():
 		true
 	) + ",\n\n")
 	_option_set.flush()
-	
+
+
 func _log_responses(msgid: int, error: Variant, result: Variant) -> void:
 	print("msgid: %d, error: %s, result: %s" % [msgid, str(error), str(result)])
 	pass
 #endregion
+
 
 func _on_window_resized() -> void:
 	if not is_node_ready() or not attached:

@@ -19,6 +19,20 @@ script = ExtResource("1_k517p")
 startup_script = "res://addons/vimdow/lua/vimdow.lua"
 
 [node name="VimdowWindow" parent="." unique_id=664027018 instance=ExtResource("3_bivy3")]
+current_mode = {
+"attr_id": 0,
+"attr_id_lm": 0,
+"blinkoff": 0,
+"blinkon": 0,
+"blinkwait": 0,
+"cell_percentage": 0,
+"cursor_shape": "block",
+"hl_id": 0,
+"id_lm": 0,
+"mouse_shape": 0,
+"name": "normal",
+"short_name": "n"
+}
 layout_mode = 2
 
 [node name="NeovimClient" type="NeovimClient" parent="." unique_id=1734104499]

@@ -6,6 +6,7 @@ local root_dir = vim.fs.root(0, { "project.godot" })
 Vimdow.is_godot_project = root_dir ~= nil
 
 if Vimdow.is_godot_project then
+	-- Automatically connect to the language server
 	local langserver_port = os.getenv("GODOT_LANGSERVER_PORT")
 	vim.api.nvim_create_autocmd("FileType", {
 		pattern = { "gdscript", "gd" },
