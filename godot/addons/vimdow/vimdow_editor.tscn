@@ -18,6 +18,9 @@ theme = ExtResource("1_gh56k")
 script = ExtResource("1_k517p")
 startup_script = "res://addons/vimdow/lua/vimdow.lua"
 
+[node name="Anchor" type="Node2D" parent="." unique_id=352610377]
+editor_description = "Mainly for turning mouse events' positions local to the editor window"
+
 [node name="VimdowWindow" parent="." unique_id=664027018 instance=ExtResource("3_bivy3")]
 current_mode = {
 "attr_id": 0,
@@ -33,9 +36,11 @@ current_mode = {
 "name": "normal",
 "short_name": "n"
 }
+editor_description = "Model + View for the draw rpcs from neovim"
 layout_mode = 2
 
 [node name="NeovimClient" type="NeovimClient" parent="." unique_id=1734104499]
+editor_description = "Runs and communicates with the neovim process via godot's data types"
 
 [connection signal="resized" from="VimdowWindow" to="." method="_on_window_resized"]
 [connection signal="neovim_event" from="NeovimClient" to="." method="_on_neovim_client_neovim_event"]

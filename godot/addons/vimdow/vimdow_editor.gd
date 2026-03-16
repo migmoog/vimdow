@@ -120,7 +120,7 @@ func _process(_delta: float) -> void:
 		elif not _mouse_buffer.is_empty():
 			var char_size = get_theme_font("normal", "VimdowEditor").get_char_size(ord(' '), get_theme_font_size("font_size", "VimdowEditor"))
 			var event_pos = PackedVector2Array(_mouse_buffer.map(func(e):
-				return e.position / char_size ))
+				return $Anchor.to_local(e.global_position) / char_size ))
 			client.flush_mouse_inputs(grid_index, event_pos, _mouse_buffer)
 
 
