@@ -216,19 +216,19 @@ impl NeovimClient {
                     MouseButton::XBUTTON1 => "x1",
                     MouseButton::XBUTTON2 => "x2",
                     MouseButton::WHEEL_UP => {
-                        action = Some("up");
+                        action = event.is_pressed().then_some("up");
                         "wheel"
                     }
                     MouseButton::WHEEL_DOWN => {
-                        action = Some("down");
+                        action = event.is_pressed().then_some("down");
                         "wheel"
                     }
                     MouseButton::WHEEL_LEFT => {
-                        action = Some("left");
+                        action = event.is_pressed().then_some("left");
                         "wheel"
                     }
                     MouseButton::WHEEL_RIGHT => {
-                        action = Some("right");
+                        action = event.is_pressed().then_some("right");
                         "wheel"
                     }
                     _ => unreachable!(),
@@ -237,7 +237,14 @@ impl NeovimClient {
                 if let Some(action) = action {
                     np.var_request(
                         "nvim_input_mouse",
-                        varray![button, action, modifiers, grid_index, pos.y as i32, pos.x as i32],
+                        varray![
+                            button,
+                            action,
+                            modifiers,
+                            grid_index,
+                            pos.y as i32,
+                            pos.x as i32
+                        ],
                     );
                 } else {
                     godot_warn!("Unimplemented mouse button: {event}");

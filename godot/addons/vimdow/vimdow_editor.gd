@@ -108,8 +108,6 @@ func _input(event: InputEvent) -> void:
 		_inputs_buffer.append(event)
 	elif event is InputEventMouse:
 		_mouse_buffer.append(event)
-	else:
-		return
 
 
 func _process(_delta: float) -> void:
@@ -120,12 +118,9 @@ func _process(_delta: float) -> void:
 		if not _inputs_buffer.is_empty():
 			client.flush_key_inputs(_inputs_buffer)
 		elif not _mouse_buffer.is_empty():
-			var gsize = Vector2( get_editor_grid_size(size) )
+			var char_size = get_theme_font("normal", "VimdowEditor").get_char_size(ord(' '), get_theme_font_size("font_size", "VimdowEditor"))
 			var event_pos = PackedVector2Array(_mouse_buffer.map(func(e):
-				var out := Vector2i((e.position / gsize).floor())
-				while out.y >= 0 and _row_wraps[out.y - 1]:
-					out.y -= 1
-				return Vector2(out) ))
+				return e.position / char_size ))
 			client.flush_mouse_inputs(grid_index, event_pos, _mouse_buffer)
 
 
