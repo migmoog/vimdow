@@ -66,7 +66,7 @@ func _exit_tree() -> void:
 		es.remove_shortcut("vimdow/decrease_font_size")
 
 func start() -> void:
-	if OS.is_debug_build():
+	if ProjectSettings.get_setting("vimdow/debug/log_msgpack"):
 		_initialize_todos()
 		client.neovim_response.connect(self._log_responses)
 	
@@ -190,7 +190,7 @@ func open_file(path: String):
 #region REDRAW_EVENTS
 func flush():
 	var  i := 0
-	var dbg = OS.is_debug_build()
+	var dbg = ProjectSettings.get_setting("vimdow/debug/log_msgpack")
 	while not _redraw_batch.is_empty():
 		var event: Array = _redraw_batch.pop_front()
 		var event_name: String = event.pop_front()
@@ -203,7 +203,7 @@ func flush():
 				event_name, 
 				JSON.stringify(event)])
 		i += 1
-	if OS.is_debug_build(): 
+	if dbg: 
 		_redraw_events.store_line("###FLUSHED###")
 		_redraw_events.flush()
 		_log_options()
