@@ -2,8 +2,8 @@ use godot::prelude::*;
 use serde::Serialize;
 use std::collections::HashSet;
 use std::ffi::OsStr;
-use std::io::Write;
-use std::process::{Child, Command, Stdio};
+use std::io::{self, Write};
+use std::process::{Child, Command, ExitStatus, Stdio};
 use std::sync::mpsc;
 use std::thread::{self, JoinHandle};
 
@@ -140,5 +140,9 @@ impl NeovimProcess {
         }
 
         ogid as i32
+    }
+
+    pub fn try_wait(&mut self) -> io::Result<Option<ExitStatus>> {
+        self.child.try_wait()
     }
 }

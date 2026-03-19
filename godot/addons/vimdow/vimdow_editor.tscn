@@ -44,3 +44,4 @@ editor_description = "Runs and communicates with the neovim process via godot's 
 
 [connection signal="resized" from="VimdowWindow" to="." method="_on_window_resized"]
 [connection signal="neovim_event" from="NeovimClient" to="." method="_on_neovim_client_neovim_event"]
+[connection signal="neovim_quit" from="NeovimClient" to="." method="quit"]

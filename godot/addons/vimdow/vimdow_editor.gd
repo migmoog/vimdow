@@ -117,9 +117,6 @@ func _input(event: InputEvent) -> void:
 
 
 func _process(_delta: float) -> void:
-	if not client.is_running():
-		quit()
-	
 	if attached:
 		if not _inputs_buffer.is_empty():
 			client.flush_key_inputs(_inputs_buffer)
@@ -135,11 +132,11 @@ func _process(_delta: float) -> void:
 			)
 
 
-func quit():
+func quit(_code: int):
 	if _is_standalone():
 		get_tree().quit()
-	#else:
-		#call_deferred("start")
+	else:
+		EditorInterface.set_plugin_enabled("vimdow", false)
 
 
 func setup_ui():

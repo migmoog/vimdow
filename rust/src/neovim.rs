@@ -37,6 +37,9 @@ impl NeovimClient {
     #[signal]
     fn neovim_response(msgid: i32, error: Variant, result: Variant);
 
+    #[signal]
+    fn neovim_quit(status: i32);
+
     #[func]
     fn kill_process(&mut self) {
         if self.nvim_process.is_some() {
@@ -200,6 +203,7 @@ impl NeovimClient {
         let Some(np) = self.nvim_process.as_mut() else {
             return;
         };
+
         for event in inputs_buffer.iter_shared() {
             if let Some(nim) =
                 NvimInputMouse::from_input_event(event, grid_index, cell_size, &anchor)
@@ -215,8 +219,19 @@ impl NeovimClient {
 #[godot_api]
 impl INode for NeovimClient {
     fn process(&mut self, _delta: f32) {
+        let Some(np) = self.nvim_process.as_mut() else {
+            return;
+        };
+
+        if let Ok(Some(e)) = np.try_wait() {
+            self.signals()
+                .neovim_quit()
+                .emit(e.code().unwrap_or(-1));
+            return;
+        }
+
         let mut messages = vec![];
-        while let Some(Some(v)) = self.nvim_process.as_mut().map(|p| p.check()) {
+        while let Some(v) = np.check() {
             if let Value::Array(rpc) = v {
                 messages.push(rpc);
             } else {
