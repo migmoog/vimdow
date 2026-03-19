@@ -192,8 +192,7 @@ impl VimdowWindow {
                     let t = i as f64 / total_span as f64;
                     let y = text_position.y as f64
                         + amplitude
-                        + -cos(l as f64 * t * TAU)
-                            * amplitude as f64;
+                        + -cos(l as f64 * t * TAU) * amplitude as f64;
                     let p = Vector2::new(
                         text_position.x + t as f32 * l as f32 * r.attr.char_size.x,
                         y as f32,

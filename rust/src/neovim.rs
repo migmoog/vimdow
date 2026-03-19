@@ -1,23 +1,24 @@
-use godot::classes::{
-    InputEventKey, InputEventMouse, InputEventMouseButton, InputEventWithModifiers, Os,
-};
-use godot::global::{Key, KeyModifierMask, MouseButton, MouseButtonMask};
+use godot::classes::{InputEvent, InputEventKey, ProjectSettings};
+use godot::global::Key;
 use godot::prelude::*;
 use rmpv::Value;
 use std::collections::HashMap;
 mod ext_types;
 mod msgpack;
 
+use crate::neovim::mouse_events::NvimInputMouse;
 use crate::neovim::msgpack::rpc_array_to_vararray;
 use msgpack::rmpv_to_godot;
 
 mod process;
 use process::NeovimProcess;
 
+mod mouse_events;
+
 fn is_special_symbol(kc: Key) -> bool {
     matches!(
         kc,
-        Key::BACKSPACE | Key::TAB | Key::ENTER | Key::SPACE | Key::ESCAPE | Key::LESS
+        Key::BACKSPACE | Key::TAB | Key::ENTER | Key::SPACE | Key::ESCAPE
     )
 }
 
@@ -135,21 +136,26 @@ impl NeovimClient {
                 }
             }
 
+            let mut special_key = |pattern: &str| {
+                let f = format!("<{pattern}>");
+                input.push_str(if has_modifier { pattern } else { f.as_str() });
+            };
+
             match kc {
-                Key::ENTER => input.push_str(if has_modifier { "CR" } else { "<CR>" }),
-                Key::BACKSPACE => input.push_str(if has_modifier { "BS" } else { "<BS>" }),
-                Key::TAB => input.push_str(if has_modifier { "Tab" } else { "<Tab>" }),
-                Key::ESCAPE => input.push_str(if has_modifier { "Esc" } else { "<Esc>" }),
-                Key::SPACE => input.push_str(if has_modifier { "Space" } else { "<Space>" }),
-                Key::LESS => input.push_str(if has_modifier { "lt" } else { "<lt>" }),
-                Key::DELETE => input.push_str(if has_modifier { "Del" } else { "<Del>" }),
+                Key::ENTER => special_key("CR"),
+                Key::BACKSPACE => special_key("BS"),
+                Key::TAB => special_key("Tab"),
+                Key::ESCAPE => special_key("Esc"),
+                Key::SPACE => special_key("Space"),
+                Key::DELETE => special_key("Del"),
+                Key::LEFT => special_key("Left"),
+                Key::RIGHT => special_key("Right"),
+                Key::UP => special_key("Up"),
+                Key::DOWN => special_key("Down"),
                 _ if Key::F1.ord() <= kc.ord() && kc.ord() <= Key::F12.ord() => {
                     let fmt = format!("F{}", kc.ord() - Key::F1.ord() + 1);
-                    if has_modifier {
-                        input.push_str(&fmt);
-                    } else {
-                        input.push_str(&format!("<{}>", fmt));
-                    }
+                    // input.push_str(&special_key(&fmt));
+                    special_key(&fmt);
                 }
                 _ => {
                     if let Some(c) = char::from_u32(if event.is_ctrl_pressed() {
@@ -157,7 +163,11 @@ impl NeovimClient {
                     } else {
                         event.get_unicode()
                     }) {
-                        input.push(c);
+                        if c == '<' {
+                            input.push_str("<lt>");
+                        } else {
+                            input.push(c);
+                        }
                     }
                 }
             }
@@ -165,6 +175,14 @@ impl NeovimClient {
             if !regular_shifted_symbol && has_modifier {
                 input.push('>');
             }
+        }
+
+        let print_key_inputs = ProjectSettings::singleton()
+            .get_setting("vimdow/debug/print_key_inputs")
+            .try_to()
+            .unwrap_or(false);
+        if print_key_inputs {
+            godot_print!("{}", input);
         }
 
         np.var_request("nvim_input", varray![input.to_godot()]);
@@ -175,80 +193,18 @@ impl NeovimClient {
     fn flush_mouse_inputs(
         &mut self,
         grid_index: i32,
-        event_position: PackedVector2Array,
-        mut inputs_buffer: Array<Gd<InputEventMouse>>,
+        mut inputs_buffer: Array<Gd<InputEvent>>,
+        cell_size: Vector2,
+        anchor: Gd<Node2D>,
     ) {
         let Some(np) = self.nvim_process.as_mut() else {
             return;
         };
-        assert!(
-            event_position.len() == inputs_buffer.len(),
-            "Events should have parallel events to positions"
-        );
-        for (event, &pos) in inputs_buffer.iter_shared().zip(event_position.as_slice()) {
-            let mut modifiers = String::new();
-            if event.is_ctrl_pressed() {
-                modifiers.push('C');
-            }
-            if event.is_alt_pressed() {
-                modifiers.push('A');
-            }
-            if event.is_shift_pressed() {
-                modifiers.push('S');
-            }
-            if event.is_meta_pressed() {
-                modifiers.push('M');
-            }
-            if let Ok(event) = event.try_cast::<InputEventMouseButton>() {
-                let ord = event.get_button_mask().ord();
-
-                let mut action = (ord & MouseButtonMask::LEFT.ord() != 0
-                    || ord & MouseButtonMask::RIGHT.ord() != 0)
-                    .then_some(if event.is_pressed() {
-                        "press"
-                    } else {
-                        "release"
-                    });
-                let button = match event.get_button_index() {
-                    MouseButton::LEFT => "left",
-                    MouseButton::RIGHT => "right",
-                    MouseButton::MIDDLE => "middle",
-                    MouseButton::XBUTTON1 => "x1",
-                    MouseButton::XBUTTON2 => "x2",
-                    MouseButton::WHEEL_UP => {
-                        action = event.is_pressed().then_some("up");
-                        "wheel"
-                    }
-                    MouseButton::WHEEL_DOWN => {
-                        action = event.is_pressed().then_some("down");
-                        "wheel"
-                    }
-                    MouseButton::WHEEL_LEFT => {
-                        action = event.is_pressed().then_some("left");
-                        "wheel"
-                    }
-                    MouseButton::WHEEL_RIGHT => {
-                        action = event.is_pressed().then_some("right");
-                        "wheel"
-                    }
-                    _ => unreachable!(),
-                };
-
-                if let Some(action) = action {
-                    np.var_request(
-                        "nvim_input_mouse",
-                        varray![
-                            button,
-                            action,
-                            modifiers,
-                            grid_index,
-                            pos.y as i32,
-                            pos.x as i32
-                        ],
-                    );
-                } else {
-                    godot_warn!("Unimplemented mouse button: {event}");
-                }
+        for event in inputs_buffer.iter_shared() {
+            if let Some(nim) =
+                NvimInputMouse::from_input_event(event, grid_index, cell_size, &anchor)
+            {
+                nim.apply(np);
             }
         }
 

@@ -26,7 +26,7 @@ var attached := false
 var _row_wraps: Array
 var _redraw_batch := []
 var _inputs_buffer: Array[InputEventKey] = []
-var _mouse_buffer: Array[InputEventMouse] = []
+var _mouse_buffer: Array[InputEvent] = []
 var _redraw_events
 var _option_set
 
@@ -95,6 +95,11 @@ func _acceptable_key(e: InputEvent) -> bool:
 	return attached and visible\
 			and (e is InputEventKey and e.is_pressed())
 
+func _acceptable_mouse(e: InputEvent) -> bool:
+	return attached and visible\
+			and (
+				e is InputEventMouse
+				)
 
 func _input(event: InputEvent) -> void:
 	if _acceptable_key(event):
@@ -105,8 +110,9 @@ func _input(event: InputEvent) -> void:
 		elif decrease_fontsize_shortcut.matches_event(event):
 			theme.set_font_size("font_size", "VimdowEditor", theme.get_font_size("font_size", "VimdowEditor") - 1)
 			_on_window_resized()
-		_inputs_buffer.append(event)
-	elif event is InputEventMouse:
+		else:
+			_inputs_buffer.append(event)
+	elif _acceptable_mouse(event):
 		_mouse_buffer.append(event)
 
 
@@ -118,17 +124,22 @@ func _process(_delta: float) -> void:
 		if not _inputs_buffer.is_empty():
 			client.flush_key_inputs(_inputs_buffer)
 		elif not _mouse_buffer.is_empty():
-			var char_size = get_theme_font("normal", "VimdowEditor").get_char_size(ord(' '), get_theme_font_size("font_size", "VimdowEditor"))
-			var event_pos = PackedVector2Array(_mouse_buffer.map(func(e):
-				return $Anchor.to_local(e.global_position) / char_size ))
-			client.flush_mouse_inputs(grid_index, event_pos, _mouse_buffer)
+			var char_size := get_theme_font("normal", "VimdowEditor")\
+				.get_char_size(ord(' '), get_theme_font_size("font_size", "VimdowEditor"))
+			client.flush_mouse_inputs(
+				grid_index,
+				_mouse_buffer,
+				get_theme_font("normal", "VimdowEditor")\
+						.get_char_size(ord(" "), get_theme_font_size("font_size", "VimdowEditor")),
+				$Anchor,
+			)
 
 
 func quit():
 	if _is_standalone():
 		get_tree().quit()
-	else:
-		call_deferred("start")
+	#else:
+		#call_deferred("start")
 
 
 func setup_ui():
