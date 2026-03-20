@@ -29,6 +29,8 @@ var _inputs_buffer: Array[InputEventKey] = []
 var _mouse_buffer: Array[InputEvent] = []
 var _redraw_events
 var _option_set
+var _path_to_nvim: String
+var _conf: ConfigFile
 
 
 #region SHORTCUTS
@@ -55,13 +57,13 @@ func _ready() -> void:
 	if _is_standalone():
 		call_deferred("start")
 	else:
-		var es := EditorInterface.get_editor_settings()
+		var es = _get_editor_interface().get_editor_settings()
 		es.add_shortcut("vimdow/increase_font_size", increase_fontsize_shortcut)
 		es.add_shortcut("vimdow/decrease_font_size", decrease_fontsize_shortcut)
 
 func _exit_tree() -> void:
 	if not _is_standalone():
-		var es := EditorInterface.get_editor_settings()
+		var es = _get_editor_interface().get_editor_settings()
 		es.remove_shortcut("vimdow/increase_font_size")
 		es.remove_shortcut("vimdow/decrease_font_size")
 
@@ -75,14 +77,25 @@ func start() -> void:
 		assert(r.size.x == size.x and r.size.y == size.y)
 		r.size_changed.connect(_on_standalone_resized)
 	else:
-		OS.set_environment("GODOT_LANGSERVER_PORT", str(EditorInterface.get_editor_settings().get_setting("network/language_server/remote_port")))
+		OS.set_environment("GODOT_LANGSERVER_PORT", str(_get_editor_interface()\
+			.get_editor_settings()\
+			.get_setting("network/language_server/remote_port")))
+	
+	_path_to_nvim = ProjectSettings.get_setting("vimdow/path_to_nvim")
+	_conf = ConfigFile.new()
+	if _conf.load("user://vimdow.cfg") == OK:
+		_path_to_nvim = _conf.get("path_to_nvim")
 	
 	var args: Array[String] = [
 		"--embed",
-		"-S",
-		ProjectSettings.globalize_path(startup_script),
 	]
-	client.spawn(ProjectSettings.get_setting("vimdow/path_to_nvim"), args)
+	if not _is_standalone():
+		args.append_array([
+			"-S",
+			ProjectSettings.globalize_path(startup_script),
+		])
+
+	client.spawn(_path_to_nvim, args)
 	await get_tree().create_timer(.1).timeout
 	setup_ui()
 	
@@ -131,12 +144,16 @@ func _process(_delta: float) -> void:
 				$Anchor,
 			)
 
+## NOTE: This method exists because the export crashes from parse errors
+## when EditorInterface is not present
+func _get_editor_interface():
+	return Engine.get_singleton("EditorInterface")
 
 func quit(_code: int):
 	if _is_standalone():
 		get_tree().quit()
 	else:
-		EditorInterface.set_plugin_enabled("vimdow", false)
+		_get_editor_interface().set_plugin_enabled("vimdow", false)
 
 
 func setup_ui():

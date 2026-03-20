@@ -1,8 +1,8 @@
-use std::f64::consts::{PI, TAU};
+use std::f64::consts::TAU;
 
-use godot::classes::{Control, Curve, IControl, ProjectSettings};
+use godot::classes::{Control, IControl, ProjectSettings};
 use godot::global::cos;
-use godot::{global::sin, obj::WithBaseField, prelude::*};
+use godot::{obj::WithBaseField, prelude::*};
 
 mod err;
 mod highlights;
