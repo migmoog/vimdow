@@ -20,6 +20,10 @@ config/icon="res://addons/vimdow/icon.svg"
 window/size/viewport_width=1280
 window/size/viewport_height=720
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/vimdow/plugin.cfg")
+
 [physics]
 
 3d/physics_engine="Jolt Physics"

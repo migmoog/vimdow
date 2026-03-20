@@ -1,5 +1,7 @@
 # Vimdow
 
+<img src="img/vimdow_logo.png" alt="Vimdow Logo" width="320" height="320">
+
 It's two things at once!
 - A neovim client based on godot
 - A godot editor plugin that lets you use neovim
