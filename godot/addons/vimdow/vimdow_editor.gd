@@ -250,9 +250,7 @@ func default_colors_set(rgb_fg: int, rgb_bg: int, rgb_sp: int, _cterm_fg, _cterm
 		special = rgb_sp
 	})
 	
-	if _is_standalone():
-		RenderingServer.set_default_clear_color(hl[0].background)
-
+	$ColorRect.color = hl[0].background
 
 func hl_attr_define(id: int, rgb_attr: Dictionary, 
 	_cterm_attr: Dictionary, _info: Array):

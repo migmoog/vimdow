@@ -77,7 +77,8 @@ impl NvimInputMouse {
             "drag"
         } else {
             "release" // shouldn't matter if it's moved
-        }.to_string();
+        }
+        .to_string();
 
         Some(Self {
             button,
@@ -89,11 +90,7 @@ impl NvimInputMouse {
         })
     }
 
-    fn button(
-        event: Gd<InputEventMouseButton>,
-        grid: i32,
-        pos: Vector2,
-    ) -> Option<Self> {
+    fn button(event: Gd<InputEventMouseButton>, grid: i32, pos: Vector2) -> Option<Self> {
         let modifier = make_mouse_modifiers(event.clone().upcast());
         let mut action = if event.is_pressed() {
             "press"

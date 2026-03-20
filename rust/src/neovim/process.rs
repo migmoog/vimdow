@@ -1,5 +1,4 @@
 use godot::prelude::*;
-use serde::Serialize;
 use std::collections::HashSet;
 use std::ffi::OsStr;
 use std::io::{self, Write};
@@ -101,25 +100,6 @@ impl NeovimProcess {
                 false
             }
         }
-    }
-
-    fn send_msgpack<T>(&self, args: &T)
-    where
-        T: Serialize + Sized,
-    {
-        let buf = rmp_serde::encode::to_vec(args).expect("Couldn't convert args to msgpack");
-        self.to.send(buf).expect("Couldn't send to write thread");
-    }
-
-    #[deprecated]
-    pub fn request<T>(&mut self, method: &str, params: &T)
-    where
-        T: Serialize + Sized,
-    {
-        let ogid = self.msgid;
-        self.send_msgpack(&(0, ogid, method, params));
-        self.msgid += 1;
-        self.pending_requests.insert(ogid);
     }
 
     pub fn var_request(&mut self, method: &str, params: VarArray) -> i32 {

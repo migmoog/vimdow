@@ -4,13 +4,13 @@ compatibility_minimum = 4.1
 reloadable = true
 
 [libraries]
-linux.debug.x86_64 =     "res://addons/vimdow/bin/libvimdow.so"
-linux.release.x86_64 =   "res://addons/vimdow/bin/libvimdow.so"
+linux.debug.x86_64 =     "res://addons/vimdow/bin/debug/libvimdow.so"
+linux.release.x86_64 =   "res://addons/vimdow/bin/release/libvimdow.so"
 
-windows.debug.x86_64 =   "res://addons/vimdow/bin/vimdow.dll"
-windows.release.x86_64 =  "res://addons/vimdow/bin/vimdow.dll"
+windows.debug.x86_64 =   "res://addons/vimdow/bin/debug/vimdow.dll"
+windows.release.x86_64 =  "res://addons/vimdow/bin/release/vimdow.dll"
 
-macos.debug =             "res://addons/vimdow/bin/libvimdow.dylib"
-macos.release =           "res://addons/vimdow/bin/libvimdow.dylib"
-macos.debug.arm64 =       "res://addons/vimdow/bin/libvimdow.dylib"
-macos.release.arm64 =     "res://addons/vimdow/bin/libvimdow.dylib"
+macos.debug =             "res://addons/vimdow/bin/debug/libvimdow.dylib"
+macos.release =           "res://addons/vimdow/bin/release/libvimdow.dylib"
+macos.debug.arm64 =       "res://addons/vimdow/bin/debug/libvimdow.dylib"
+macos.release.arm64 =     "res://addons/vimdow/bin/release/libvimdow.dylib"

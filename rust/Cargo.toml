@@ -2,6 +2,11 @@
 name = "vimdow"
 version = "0.1.0"
 edition = "2024"
+description = "A neovim client/godot editor plugin"
+license = "MIT"
+publish = false
+keywords = ["gamedev", "vim", "neovim", "godot"]
+categories = ["game-development"]
 
 [lib]
 crate-type = ["cdylib"]
@@ -15,3 +20,9 @@ ropey = "1.6.1"
 serde = "1.0.228"
 thiserror = "2.0.18"
 unicode-segmentation = "1.12.0"
+
+[package.metadata.release]
+pre-release-replacements =  [
+ # bumping plugin config info
+ {file="../godot/addons/vimdow/plugin.cfg", search="^\\s*version=.*$", replace="version=\"{{version}}\""}
+]

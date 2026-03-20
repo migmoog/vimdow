@@ -76,14 +76,14 @@ impl NeovimClient {
 
         // NOTE: in the future, may want to add a "multigrid" option if users want to
         // edit buffers in separate windows.
-        np.request(
-            "nvim_ui_attach",
-            &(
-                width,
-                height,
-                HashMap::from([("ext_linegrid", true), ("rgb", true)]),
-            ),
-        );
+        np.var_request("nvim_ui_attach", varray![
+            width,
+            height,
+            vdict! {
+                "ext_linegrid": true,
+                "rgb": true,
+            },
+        ]);
         true
     }
 

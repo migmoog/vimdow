@@ -3,11 +3,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RUST_DIR="$SCRIPT_DIR/rust"
-BIN_DIR="$SCRIPT_DIR/godot/addons/vimdow/bin"
-
-mkdir -p "$BIN_DIR"
 
 BUILD=${1:-debug}
+BIN_DIR="$SCRIPT_DIR/godot/addons/vimdow/bin/$BUILD"
+mkdir -p "$BIN_DIR"
 
 cargo build --manifest-path "$RUST_DIR/Cargo.toml" $([ "$BUILD" = "release" ] && echo "--release")
 
