@@ -57,9 +57,11 @@ func _ready() -> void:
 	if _is_standalone():
 		call_deferred("start")
 	else:
-		var es = _get_editor_interface().get_editor_settings()
+		var ei = _get_editor_interface()
+		var es = ei.get_editor_settings()
 		es.add_shortcut("vimdow/increase_font_size", increase_fontsize_shortcut)
 		es.add_shortcut("vimdow/decrease_font_size", decrease_fontsize_shortcut)
+		$ColorRect.color = es.get_setting("interface/theme/base_color")
 
 func _exit_tree() -> void:
 	if not _is_standalone():

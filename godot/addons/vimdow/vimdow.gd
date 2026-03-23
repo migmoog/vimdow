@@ -7,7 +7,8 @@ const EDITOR = preload("res://addons/vimdow/vimdow_editor.tscn")
 var editor: VimdowEditor
 
 func _enter_tree() -> void:
-	ProjectSettings.set_setting("vimdow/path_to_nvim", "/usr/bin/nvim")
+	if not ProjectSettings.has_setting("vimdow/path_to_nvim"):
+		ProjectSettings.set_setting("vimdow/path_to_nvim", "/usr/bin/nvim")
 	
 	editor = EDITOR.instantiate()
 	EditorInterface.get_editor_main_screen().add_child(editor)
