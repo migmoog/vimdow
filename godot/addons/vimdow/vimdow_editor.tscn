@@ -23,6 +23,7 @@ editor_description = "Mainly for turning mouse events' positions local to the ed
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=1261598546]
 layout_mode = 2
+color = Color(0.161, 0.161, 0.161, 1)
 
 [node name="VimdowWindow" parent="." unique_id=664027018 instance=ExtResource("3_bivy3")]
 current_mode = {

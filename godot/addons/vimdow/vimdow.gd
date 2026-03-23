@@ -34,6 +34,9 @@ func _edit(object: Object):
 func _has_main_screen() -> bool:
 	return true
 
+func _get_plugin_icon() -> Texture2D:
+	return preload("res://addons/vimdow/images/vimdow_icon.png")
+
 func _make_visible(visible: bool) -> void:
 	if editor:
 		editor.visible = visible

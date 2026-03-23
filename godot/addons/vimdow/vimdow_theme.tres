@@ -2,6 +2,7 @@
 
 [ext_resource type="FontFile" uid="uid://bphvvqswh02kw" path="res://addons/vimdow/fonts/FiraCodeNerdFontMono-Bold.ttf" id="1_umg0i"]
 [ext_resource type="FontFile" uid="uid://b62h820uc86yo" path="res://addons/vimdow/fonts/FiraCodeNerdFont-Regular.ttf" id="2_hyhkx"]
+[ext_resource type="Texture2D" uid="uid://cxvq3w06mxhd2" path="res://addons/vimdow/images/vimdow_icon.png" id="3_o7tiy"]
 
 [sub_resource type="FontVariation" id="FontVariation_umg0i"]
 base_font = ExtResource("2_hyhkx")
@@ -12,3 +13,4 @@ VimdowEditor/font_sizes/font_size = 18
 VimdowEditor/fonts/bold = ExtResource("1_umg0i")
 VimdowEditor/fonts/italic = SubResource("FontVariation_umg0i")
 VimdowEditor/fonts/normal = ExtResource("2_hyhkx")
+VimdowEditor/icons/icon = ExtResource("3_o7tiy")

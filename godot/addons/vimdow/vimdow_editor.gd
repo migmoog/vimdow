@@ -112,9 +112,8 @@ func _acceptable_key(e: InputEvent) -> bool:
 
 func _acceptable_mouse(e: InputEvent) -> bool:
 	return attached and visible\
-			and (
-				e is InputEventMouse
-				)
+			and e is InputEventMouse\
+			and get_global_rect().has_point(e.position)
 
 func _input(event: InputEvent) -> void:
 	if _acceptable_key(event):
