@@ -114,13 +114,13 @@ func _acceptable_key(e: InputEvent) -> bool:
 
 func _acceptable_mouse(e: InputEvent) -> bool:
 	return attached and visible\
-			and e is InputEventMouse\
-			and get_global_rect().has_point(e.position)
+			and e is InputEventMouse
+			#and get_global_rect().has_point(e.position)
 
-func _input(event: InputEvent) -> void:
-	if not has_focus():
-		return
+func _has_point(point: Vector2) -> bool:
+	return get_global_rect().has_point($Anchor.to_global(point))
 
+func _gui_input(event: InputEvent) -> void:
 	if _acceptable_key(event):
 		get_viewport().set_input_as_handled()
 		if increase_fontsize_shortcut.matches_event(event):
@@ -147,7 +147,6 @@ func _process(_delta: float) -> void:
 				_mouse_buffer,
 				get_theme_font("normal", "VimdowEditor")\
 						.get_char_size(ord(" "), get_theme_font_size("font_size", "VimdowEditor")),
-				$Anchor,
 			)
 
 ## NOTE: This method exists because the export crashes from parse errors
@@ -406,7 +405,6 @@ func _log_options():
 
 func _log_responses(msgid: int, error: Variant, result: Variant) -> void:
 	print("msgid: %d, error: %s, result: %s" % [msgid, str(error), str(result)])
-	pass
 #endregion
 
 

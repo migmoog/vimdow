@@ -37,13 +37,12 @@ impl NvimInputMouse {
         event: Gd<InputEvent>,
         grid: i32,
         cell_size: Vector2,
-        anchor: &Gd<Node2D>,
     ) -> Option<Self> {
         if let Ok(mb) = event.clone().try_cast::<InputEventMouseButton>() {
-            let pos = anchor.to_local(mb.get_position()) / cell_size;
+            let pos = mb.get_position() / cell_size;
             Self::button(mb, grid, pos)
         } else if let Ok(mm) = event.clone().try_cast::<InputEventMouseMotion>() {
-            let pos = anchor.to_local(mm.get_position()) / cell_size;
+            let pos = mm.get_position() / cell_size;
             Self::motion(mm, grid, pos)
         } else {
             None

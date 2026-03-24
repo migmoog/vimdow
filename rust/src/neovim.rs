@@ -198,7 +198,6 @@ impl NeovimClient {
         grid_index: i32,
         mut inputs_buffer: Array<Gd<InputEvent>>,
         cell_size: Vector2,
-        anchor: Gd<Node2D>,
     ) {
         let Some(np) = self.nvim_process.as_mut() else {
             return;
@@ -206,7 +205,7 @@ impl NeovimClient {
 
         for event in inputs_buffer.iter_shared() {
             if let Some(nim) =
-                NvimInputMouse::from_input_event(event, grid_index, cell_size, &anchor)
+                NvimInputMouse::from_input_event(event, grid_index, cell_size)
             {
                 nim.apply(np);
             }
