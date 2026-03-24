@@ -46,6 +46,6 @@ layout_mode = 2
 [node name="NeovimClient" type="NeovimClient" parent="." unique_id=1734104499]
 editor_description = "Runs and communicates with the neovim process via godot's data types"
 
-[connection signal="resized" from="VimdowWindow" to="." method="_on_window_resized"]
+[connection signal="resized" from="VimdowWindow" to="." method="try_resize"]
 [connection signal="neovim_event" from="NeovimClient" to="." method="_on_neovim_client_neovim_event"]
 [connection signal="neovim_quit" from="NeovimClient" to="." method="quit"]

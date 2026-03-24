@@ -264,8 +264,4 @@ impl INode for NeovimClient {
             }
         }
     }
-
-    fn exit_tree(&mut self) {
-        self.kill_process();
-    }
 }

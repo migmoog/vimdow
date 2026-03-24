@@ -21,6 +21,8 @@ var cwd: String
 @onready var client = $NeovimClient
 @onready var w = $VimdowWindow
 
+## The viewport that the editor obeys the size of
+var viewport_lock: Window
 var attached := false
 
 var _row_wraps: Array
@@ -41,7 +43,7 @@ var decrease_fontsize_shortcut: Shortcut
 func _init() -> void:
 	increase_fontsize_shortcut = Shortcut.new()
 	decrease_fontsize_shortcut = Shortcut.new()
-
+	
 	var ifev = InputEventKey.new()
 	ifev.ctrl_pressed = true
 	ifev.keycode = KEY_EQUAL
@@ -77,7 +79,7 @@ func start() -> void:
 	if _is_standalone():
 		var r = get_tree().root
 		assert(r.size.x == size.x and r.size.y == size.y)
-		r.size_changed.connect(_on_standalone_resized)
+		lock_to_window(r)
 	else:
 		OS.set_environment("GODOT_LANGSERVER_PORT", str(_get_editor_interface()\
 			.get_editor_settings()\
@@ -120,10 +122,10 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		if increase_fontsize_shortcut.matches_event(event):
 			theme.set_font_size("font_size", "VimdowEditor", theme.get_font_size("font_size", "VimdowEditor") + 1)
-			_on_window_resized()
+			try_resize()
 		elif decrease_fontsize_shortcut.matches_event(event):
 			theme.set_font_size("font_size", "VimdowEditor", theme.get_font_size("font_size", "VimdowEditor") - 1)
-			_on_window_resized()
+			try_resize()
 		else:
 			_inputs_buffer.append(event)
 	elif _acceptable_mouse(event):
@@ -173,7 +175,7 @@ func get_editor_grid_size(s: Vector2) -> Vector2i:
 	var font_size = theme.get_font_size("font_size", "VimdowEditor")
 	var char_size: Vector2 = theme.get_font("normal", "VimdowEditor")\
 		.get_char_size(ord(" "), font_size)
-	return Vector2i((s/char_size).round())
+	return Vector2i((s/char_size).floor())
 
 
 func _on_neovim_client_neovim_event(method: String, params: Array) -> void:
@@ -405,15 +407,37 @@ func _log_responses(msgid: int, error: Variant, result: Variant) -> void:
 #endregion
 
 
-func _on_window_resized() -> void:
+func try_resize() -> void:
 	if not is_node_ready() or not attached:
 		return
 	var s := get_editor_grid_size(w.size)
 	client.request("nvim_ui_try_resize", [s.x, s.y])
 
-#region STANDALONE_METHODS
-func _on_standalone_resized():
+
+## Forces the editor to follow the same size
+## as the viewport holding it and add it as a child
+func lock_to_window(v: Window):
+	assert(not get_parent() is Container, 
+			"Cannot resize while attached to a container")
+	assert(v.is_ancestor_of(self),
+			"Editor must be child of the viewport its locked to")
+	assert(viewport_lock == null,
+			"Editor can only lock to one viewport at a time")
+	viewport_lock = v
+	v.size_changed.connect(_on_viewport_lock_size_changed)
+
+
+## Removes the editor from the current viewport its locked to
+## and unattach its size change signal
+func unlock_from_window():
+	assert(viewport_lock != null, 
+			"Not locked to any viewport")
+	viewport_lock.size_changed.disconnect(_on_viewport_lock_size_changed)
+	viewport_lock = null
+
+
+func _on_viewport_lock_size_changed():
+	assert(viewport_lock != null)
 	if not (is_node_ready() or attached):
 		return
-	set_deferred("size", get_tree().root.size)
-#endregion
+	set_deferred("size", viewport_lock.size)
