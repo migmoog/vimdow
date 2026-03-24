@@ -118,6 +118,9 @@ func _acceptable_mouse(e: InputEvent) -> bool:
 			and get_global_rect().has_point(e.position)
 
 func _input(event: InputEvent) -> void:
+	if not has_focus():
+		return
+
 	if _acceptable_key(event):
 		get_viewport().set_input_as_handled()
 		if increase_fontsize_shortcut.matches_event(event):
@@ -276,8 +279,8 @@ func mode_change(mode: String, mode_idx: int):
 
 
 func set_title(title: String):
-	if _is_standalone():
-		get_tree().root.title = title
+	if viewport_lock:
+		viewport_lock.title = title
 
 
 func set_icon(icon: String):

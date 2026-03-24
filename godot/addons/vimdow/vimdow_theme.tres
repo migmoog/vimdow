@@ -9,7 +9,7 @@ base_font = ExtResource("2_hyhkx")
 variation_transform = Transform2D(1, 0.1, 0, 1, 0, 0)
 
 [resource]
-VimdowEditor/font_sizes/font_size = 18
+VimdowEditor/font_sizes/font_size = 16
 VimdowEditor/fonts/bold = ExtResource("1_umg0i")
 VimdowEditor/fonts/italic = SubResource("FontVariation_umg0i")
 VimdowEditor/fonts/normal = ExtResource("2_hyhkx")
