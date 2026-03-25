@@ -9,9 +9,16 @@ var window_wrapper: Window
 
 var pop_out_shortcut: Shortcut
 
+const DEFAULT_SETTINGS = {
+	"path_to_nvim" : "/usr/bin/nvim",
+	"experimental/pop_out" : false,
+}
+
 func _enter_tree() -> void:
-	if not ProjectSettings.has_setting("vimdow/path_to_nvim"):
-		ProjectSettings.set_setting("vimdow/path_to_nvim", "/usr/bin/nvim")
+	for setting in DEFAULT_SETTINGS:
+		var full_setting = "vimdow/" + setting
+		if not ProjectSettings.has_setting(full_setting):
+			ProjectSettings.set_setting(full_setting, DEFAULT_SETTINGS[setting])
 	
 	editor = EDITOR.instantiate()
 	EditorInterface.get_editor_main_screen().add_child(editor)
@@ -44,12 +51,13 @@ func _exit_tree() -> void:
 		window_wrapper.queue_free()
 
 func _input(event: InputEvent) -> void:
-	if editor.visible and event.is_pressed() and  pop_out_shortcut.matches_event(event):
+	if ProjectSettings.get_setting("vimdow/experimental/pop_out")\
+			and editor.visible \
+			and event.is_pressed() \
+			and  pop_out_shortcut.matches_event(event):
 		get_viewport().set_input_as_handled()
 		var ms := EditorInterface.get_editor_main_screen()
-		if window_wrapper.visible:
-			window_wrapper.hide()
-		else:
+		if not window_wrapper.visible:
 			window_wrapper.show()
 			ms.remove_child(editor)
 			window_wrapper.add_child(editor)
@@ -70,7 +78,6 @@ func _edit(object: Object):
 	if object == null:
 		return
 	
-	EditorInterface.set_main_screen_editor(MAIN_SCREEN_NAME)
 	editor.open_file(ProjectSettings.globalize_path(object.resource_path))
 
 func _has_main_screen() -> bool:

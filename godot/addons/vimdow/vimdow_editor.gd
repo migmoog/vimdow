@@ -115,10 +115,7 @@ func _acceptable_key(e: InputEvent) -> bool:
 func _acceptable_mouse(e: InputEvent) -> bool:
 	return attached and visible\
 			and e is InputEventMouse
-			#and get_global_rect().has_point(e.position)
 
-func _has_point(point: Vector2) -> bool:
-	return get_global_rect().has_point($Anchor.to_global(point))
 
 func _gui_input(event: InputEvent) -> void:
 	if _acceptable_key(event):
@@ -139,7 +136,8 @@ func _process(_delta: float) -> void:
 	if attached:
 		if not _inputs_buffer.is_empty():
 			client.flush_key_inputs(_inputs_buffer)
-		elif not _mouse_buffer.is_empty():
+		
+		if not _mouse_buffer.is_empty():
 			var char_size := get_theme_font("normal", "VimdowEditor")\
 				.get_char_size(ord(' '), get_theme_font_size("font_size", "VimdowEditor"))
 			client.flush_mouse_inputs(
