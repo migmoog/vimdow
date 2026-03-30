@@ -53,9 +53,9 @@ impl NvimInputMouse {
         np.var_request(
             "nvim_input_mouse",
             varray![
-                self.button,
-                self.action,
-                self.modifier,
+                self.button.as_str(),
+                self.action.as_str(),
+                self.modifier.as_str(),
                 self.grid,
                 self.row,
                 self.col

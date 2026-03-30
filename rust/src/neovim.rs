@@ -67,25 +67,25 @@ impl NeovimClient {
         }
     }
 
-    #[func]
-    fn attach(&mut self, width: i32, height: i32) -> bool {
-        let Some(ref mut np) = self.nvim_process else {
-            godot_error!("Tried attaching to process while none was running");
-            return false;
-        };
-
-        // NOTE: in the future, may want to add a "multigrid" option if users want to
-        // edit buffers in separate windows.
-        np.var_request("nvim_ui_attach", varray![
-            width,
-            height,
-            vdict! {
-                "ext_linegrid": true,
-                "rgb": true,
-            },
-        ]);
-        true
-    }
+    // #[func]
+    // fn attach(&mut self, width: i32, height: i32) -> bool {
+    //     let Some(ref mut np) = self.nvim_process else {
+    //         godot_error!("Tried attaching to process while none was running");
+    //         return false;
+    //     };
+    //
+    //     // NOTE: in the future, may want to add a "multigrid" option if users want to
+    //     // edit buffers in separate windows.
+    //     np.var_request("nvim_ui_attach", varray![
+    //         width,
+    //         height,
+    //         &vdict! {
+    //             "ext_linegrid" => true,
+    //             "rgb" => true,
+    //         },
+    //     ]);
+    //     true
+    // }
 
     #[func]
     fn request(&mut self, method: String, params: VarArray) -> i32 {
@@ -188,7 +188,7 @@ impl NeovimClient {
             godot_print!("{}", input);
         }
 
-        np.var_request("nvim_input", varray![input.to_godot()]);
+        np.var_request("nvim_input", varray![&input.to_godot()]);
         inputs_buffer.clear();
     }
 

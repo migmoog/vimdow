@@ -32,6 +32,10 @@ var _mouse_buffer: Array[InputEvent] = []
 var _redraw_events
 var _option_set
 var _path_to_nvim: String
+
+## Configuration Handling ##
+const NEOVIM_SECTION = "neovim"
+const THEME_SECTION = "theme"
 var _conf: ConfigFile
 
 
@@ -57,6 +61,11 @@ func _init() -> void:
 
 func _ready() -> void:
 	if _is_standalone():
+		_conf = ConfigFile.new()
+		if _conf.load("user://vimdow.cfg") == OK:
+			
+		else:
+			pass # TODO: add an error display screen for the vimdow editor
 		call_deferred("start")
 	else:
 		var ei = _get_editor_interface()
@@ -85,10 +94,10 @@ func start() -> void:
 			.get_editor_settings()\
 			.get_setting("network/language_server/remote_port")))
 	
-	_path_to_nvim = ProjectSettings.get_setting("vimdow/path_to_nvim")
-	_conf = ConfigFile.new()
-	if _conf.load("user://vimdow.cfg") == OK:
-		_path_to_nvim = _conf.get("path_to_nvim")
+	# _path_to_nvim = ProjectSettings.get_setting("vimdow/path_to_nvim")
+	# _conf = ConfigFile.new()
+	# if _conf.load("user://vimdow.cfg") == OK:
+	# 	_path_to_nvim = _conf.get("path_to_nvim")
 	
 	var args: Array[String] = [
 		"--embed",
@@ -101,7 +110,14 @@ func start() -> void:
 
 	client.spawn(_path_to_nvim, args)
 	await get_tree().create_timer(.1).timeout
-	setup_ui()
+	assert(client.is_running())
+	var initial_size := get_editor_grid_size(w.size)
+	# attached = client.attach(initial_size.x, initial_size.y)
+	client.request("nvim_ui_attach", [initial_size.x, initial_size.y, {
+		"ext_linegrid" : true,
+		"rgb" : true,
+	}])
+	attached = true # may come up with a better way to assert this
 	
 	var file = ProjectSettings.get_setting("vimdow/edit_file")
 	if file:
@@ -157,13 +173,6 @@ func quit(_code: int):
 		get_tree().quit()
 	else:
 		_get_editor_interface().set_plugin_enabled("vimdow", false)
-
-
-func setup_ui():
-	assert(not attached)
-	assert(client.is_running())
-	var initial_size := get_editor_grid_size(w.size)
-	attached = client.attach(initial_size.x, initial_size.y)
 
 
 # checks if vimdow is the standalone app or the editor plugin

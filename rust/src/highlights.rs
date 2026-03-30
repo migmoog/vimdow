@@ -10,9 +10,11 @@ pub struct Highlighter {
     base: Base<Control>,
 
     #[export]
+    #[var(pub)]
     hl_data: VarDictionary,
 
     #[export]
+    #[var(pub)]
     hl_regions: Array<PackedInt32Array>,
 
     bold_font: Gd<FontVariation>,

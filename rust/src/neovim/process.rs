@@ -104,7 +104,7 @@ impl NeovimProcess {
 
     pub fn var_request(&mut self, method: &str, params: VarArray) -> i32 {
         let ogid = self.msgid;
-        let rpc = varray![0, ogid, method, params];
+        let rpc = varray![0, ogid, method, &params];
         let val = godot_to_rmpv(rpc.to_variant());
         let mut buf = Vec::new();
         rmpv::encode::write_value(&mut buf, &val).expect("Couldn't serialize value");

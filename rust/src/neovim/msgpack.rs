@@ -18,7 +18,7 @@ pub fn rmpv_to_godot(v: Value) -> Variant {
         Value::Map(map) => {
             let mut dict = vdict! {};
             for (k, v) in map {
-                let _ = dict.insert(rmpv_to_godot(k), rmpv_to_godot(v));
+                let _ = dict.insert(&rmpv_to_godot(k), &rmpv_to_godot(v));
             }
             dict.to_variant()
         }
@@ -52,8 +52,6 @@ pub fn godot_to_rmpv(v: Variant) -> Value {
         VariantType::INT => {
             if let Ok(int64) = v.try_to::<i64>() {
                 Value::Integer(int64.into())
-            } else if let Ok(uint64) = v.try_to::<u64>() {
-                Value::Integer(uint64.into())
             } else {
                 panic!("Can't turn {v} into msgpack int");
             }

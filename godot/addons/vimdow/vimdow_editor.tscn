@@ -20,9 +20,6 @@ theme = ExtResource("1_gh56k")
 script = ExtResource("1_k517p")
 startup_script = "res://addons/vimdow/lua/vimdow.lua"
 
-[node name="Anchor" type="Node2D" parent="." unique_id=352610377]
-editor_description = "Mainly for turning mouse events' positions local to the editor window"
-
 [node name="ColorRect" type="ColorRect" parent="." unique_id=1261598546]
 layout_mode = 2
 color = Color(0.161, 0.161, 0.161, 1)
