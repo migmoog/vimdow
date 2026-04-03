@@ -4,6 +4,7 @@ extends EditorPlugin
 const MAIN_SCREEN_NAME = "Vimdow"
 const EDITOR = preload("res://addons/vimdow/vimdow_editor.tscn")
 
+var _last_main_screen: String = ""
 var editor: VimdowEditor
 var window_wrapper: Window
 
@@ -11,7 +12,6 @@ var pop_out_shortcut: Shortcut
 
 const DEFAULT_SETTINGS = {
 	"path_to_nvim" : "/usr/bin/nvim",
-	"experimental/pop_out" : false,
 }
 
 func _enter_tree() -> void:
@@ -41,6 +41,8 @@ func _enter_tree() -> void:
 			.add_shortcut("vimdow/pop_out_window", pop_out_shortcut)
 
 	_make_visible(false)
+	
+	main_screen_changed.connect(_on_main_screen_changed)
 
 
 func _exit_tree() -> void:
@@ -51,8 +53,7 @@ func _exit_tree() -> void:
 		window_wrapper.queue_free()
 
 func _input(event: InputEvent) -> void:
-	if ProjectSettings.get_setting("vimdow/experimental/pop_out")\
-			and editor.visible \
+	if editor.visible \
 			and event.is_pressed() \
 			and  pop_out_shortcut.matches_event(event):
 		get_viewport().set_input_as_handled()
@@ -70,6 +71,10 @@ func _on_editor_window_close():
 	
 	EditorInterface.get_editor_main_screen().add_child(editor)
 	EditorInterface.set_main_screen_editor(MAIN_SCREEN_NAME)
+
+func _on_main_screen_changed(screen_name: String):
+	if screen_name != _get_plugin_name():
+		_last_main_screen = screen_name
 
 func _handles(object: Object) -> bool:
 	return object is Script
@@ -89,6 +94,16 @@ func _get_plugin_icon() -> Texture2D:
 func _make_visible(visible: bool) -> void:
 	if editor:
 		editor.visible = window_wrapper.visible or visible
+	if window_wrapper.visible:
+		_focus_last_editor()
+		window_wrapper.show()
+		window_wrapper.grab_focus()
+
+func _focus_last_editor():
+	if window_wrapper.visible:
+		assert(not _last_main_screen.is_empty())
+		EditorInterface.get_base_control().get_viewport().gui_release_focus()
+		EditorInterface.set_main_screen_editor(_last_main_screen)
 
 func _get_plugin_name() -> String:
 	return MAIN_SCREEN_NAME

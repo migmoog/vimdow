@@ -34,7 +34,7 @@ var _option_set
 var _path_to_nvim: String
 
 ## Configuration Handling ##
-const NEOVIM_SECTION = "neovim"
+const MAIN_SECTION = "neovim"
 const THEME_SECTION = "theme"
 var _conf: ConfigFile
 
@@ -60,14 +60,13 @@ func _init() -> void:
 
 
 func _ready() -> void:
+	_conf = ConfigFile.new()
 	if _is_standalone():
-		_conf = ConfigFile.new()
-		if _conf.load("user://vimdow.cfg") == OK:
-			
-		else:
-			pass # TODO: add an error display screen for the vimdow editor
+		if _conf.load("user://vimdow.cfg") != OK:
+			_conf.set_value(MAIN_SECTION, "path_to_nvim", "/usr/bin/nvim")
 		call_deferred("start")
 	else:
+		_conf.set_value(MAIN_SECTION, "path_to_nvim", ProjectSettings.get_setting("vimdow/path_to_nvim"))
 		var ei = _get_editor_interface()
 		var es = ei.get_editor_settings()
 		es.add_shortcut("vimdow/increase_font_size", increase_fontsize_shortcut)
@@ -108,7 +107,7 @@ func start() -> void:
 			ProjectSettings.globalize_path(startup_script),
 		])
 
-	client.spawn(_path_to_nvim, args)
+	client.spawn(_conf.get_value(MAIN_SECTION, "path_to_nvim"), args)
 	await get_tree().create_timer(.1).timeout
 	assert(client.is_running())
 	var initial_size := get_editor_grid_size(w.size)
