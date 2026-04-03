@@ -1,18 +1,31 @@
-if [ "$2" != "no-build" ]; then
-   ./build.sh
+nobuild=0
+userargs=()
+for ((i=1; i <= $#; i++)); do
+  arg=${!i}
+  if [ "$arg" == "no-build" ]; then
+    nobuild=1
+  fi
+
+  if [ "$arg" == "--" ]; then
+    userargs=("${@:i}")
+    break
+  fi
+done
+
+if [ $nobuild -eq 0 ]; then
+  echo "Building..."
+  ./build.sh
+else
+  echo "Skipping build"
 fi
 
-# if [ "$1" != "no-build" ]; then
-#   source build.sh
-# fi
-#
-# godot -e --path godot
-#
+
 case "$1" in
   editor|e)
-    godot -e --path godot;;
+    godot -e --path godot "${userargs[@]}";;
   standalone|s)
-    godot --path godot;;
+    godot --path godot "${userargs[@]}";;
   *)
-    echo "Not a handled case: \"$MODE\"";;
+    echo "Not a handled case: \"$1\""
+    exit 1;;
 esac

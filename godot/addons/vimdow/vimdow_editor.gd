@@ -93,19 +93,13 @@ func start() -> void:
 			.get_editor_settings()\
 			.get_setting("network/language_server/remote_port")))
 	
-	# _path_to_nvim = ProjectSettings.get_setting("vimdow/path_to_nvim")
-	# _conf = ConfigFile.new()
-	# if _conf.load("user://vimdow.cfg") == OK:
-	# 	_path_to_nvim = _conf.get("path_to_nvim")
-	
-	var args: Array[String] = [
-		"--embed",
-	]
+	var args := PackedStringArray(["--embed"])
 	if not _is_standalone():
 		args.append_array([
 			"-S",
 			ProjectSettings.globalize_path(startup_script),
 		])
+	args.append_array(OS.get_cmdline_user_args())
 
 	client.spawn(_conf.get_value(MAIN_SECTION, "path_to_nvim"), args)
 	await get_tree().create_timer(.1).timeout

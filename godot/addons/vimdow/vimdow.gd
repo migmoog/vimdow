@@ -63,6 +63,7 @@ func _input(event: InputEvent) -> void:
 			ms.remove_child(editor)
 			window_wrapper.add_child(editor)
 			editor.lock_to_window(window_wrapper)
+			editor.grab_focus()
 
 func _on_editor_window_close():
 	editor.unlock_from_window()
@@ -97,7 +98,7 @@ func _make_visible(visible: bool) -> void:
 	if window_wrapper.visible:
 		_focus_last_editor()
 		window_wrapper.show()
-		window_wrapper.grab_focus()
+		editor.grab_focus()
 
 func _focus_last_editor():
 	if window_wrapper.visible:

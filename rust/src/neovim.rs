@@ -43,49 +43,25 @@ impl NeovimClient {
     #[func]
     fn kill_process(&mut self) {
         if self.nvim_process.is_some() {
-            godot_warn!("killed neovim process");
+            godot_warn!("Killed neovim process");
         }
         self.nvim_process = None;
     }
 
     #[func]
-    fn spawn(&mut self, program: String, args: Array<GString>) -> bool {
-        let mut args_vec = vec![];
-        for i in 0..args.len() {
-            let args = args.at(i);
-            args_vec.push(args.to_string());
-        }
-        match NeovimProcess::new(&program, args_vec.as_slice()) {
+    fn spawn(&mut self, program: String, args: PackedStringArray) -> bool {
+        let args: Vec<_> = args.to_vec().into_iter().map(|g| g.to_string()).collect();
+        match NeovimProcess::new(&program, args.as_slice()) {
             Ok(np) => {
                 self.nvim_process = Some(np);
                 true
             }
             Err(e) => {
-                godot_error!("Couldn't start neovim process: {e:?}");
+                godot_error!("Couldn't start neovim process: {:?}", e);
                 false
             }
         }
     }
-
-    // #[func]
-    // fn attach(&mut self, width: i32, height: i32) -> bool {
-    //     let Some(ref mut np) = self.nvim_process else {
-    //         godot_error!("Tried attaching to process while none was running");
-    //         return false;
-    //     };
-    //
-    //     // NOTE: in the future, may want to add a "multigrid" option if users want to
-    //     // edit buffers in separate windows.
-    //     np.var_request("nvim_ui_attach", varray![
-    //         width,
-    //         height,
-    //         &vdict! {
-    //             "ext_linegrid" => true,
-    //             "rgb" => true,
-    //         },
-    //     ]);
-    //     true
-    // }
 
     #[func]
     fn request(&mut self, method: String, params: VarArray) -> i32 {
