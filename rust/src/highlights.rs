@@ -79,6 +79,8 @@ pub struct HlAttr {
     pub special: Color,
     pub font: Gd<FontVariation>,
     pub undercurl: bool,
+    pub underline: bool,
+    pub underdouble: bool,
     pub font_size: i32,
     pub char_size: Vector2,
 }
@@ -148,6 +150,8 @@ impl Highlighter {
             special,
             font,
             undercurl,
+            underline: attr.contains_key("underline"),
+            underdouble: attr.contains_key("underdouble"),
             font_size,
             char_size,
         }

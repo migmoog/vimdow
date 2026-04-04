@@ -11,7 +11,7 @@ mod neovim;
 use ropey::Rope;
 use unicode_segmentation::UnicodeSegmentation;
 
-use crate::highlights::Highlighter;
+use crate::highlights::{Highlighter, HlAttr};
 
 fn column_slice(row: &str, start: usize, end: usize) -> String {
     assert!(start <= end);
@@ -180,11 +180,11 @@ impl VimdowWindow {
                 self.draw_cursor();
             }
 
+            let line_width = r.attr.font_size as f32 * 0.1;
+            let l = r.len();
+            let desc = r.attr.font.get_descent() as f64;
             if r.attr.undercurl {
-                let line_width = r.attr.font_size as f32 * 0.1;
-                let desc = r.attr.font.get_descent() as f64;
                 let amplitude = desc / 2.0;
-                let l = r.len();
                 const STEPS_PER_CYCLE: usize = 8;
                 let total_span = l * STEPS_PER_CYCLE;
                 let mut points = PackedVector2Array::new();
@@ -204,7 +204,35 @@ impl VimdowWindow {
                     .width(line_width)
                     .done();
             }
+
+            if r.attr.underline {
+                self.draw_underline(text_position, l as f32, &r.attr);
+            }
+
+            if r.attr.underdouble {
+                self.draw_underline(text_position, l as f32, &r.attr);
+                let next_text_position = Vector2::new(
+                    text_position.x,
+                    text_position.y - r.attr.char_size.y * 0.2,
+                );
+                self.draw_underline(next_text_position, l as f32, &r.attr);
+            }
         }
+    }
+
+    fn draw_underline(&mut self, text_position: Vector2, region_len: f32, attr: &HlAttr) {
+        let desc = attr.font.get_descent();
+        let line = PackedVector2Array::from([
+            Vector2::new(text_position.x, text_position.y + desc as f32),
+            Vector2::new(
+                text_position.x + region_len * attr.char_size.x,
+                text_position.y + desc as f32,
+            ),
+        ]);
+        self.base_mut()
+            .draw_polyline_ex(&line, attr.special)
+            .width(2.0)
+            .done();
     }
 
     fn draw_cursor(&mut self) {

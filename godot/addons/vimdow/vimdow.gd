@@ -85,6 +85,7 @@ func _edit(object: Object):
 		return
 	
 	editor.open_file(ProjectSettings.globalize_path(object.resource_path))
+	editor.grab_focus()
 
 func _has_main_screen() -> bool:
 	return true
