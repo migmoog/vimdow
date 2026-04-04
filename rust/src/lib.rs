@@ -211,17 +211,23 @@ impl VimdowWindow {
 
             if r.attr.underdouble {
                 self.draw_underline(text_position, l as f32, &r.attr);
-                let next_text_position = Vector2::new(
-                    text_position.x,
-                    text_position.y - r.attr.char_size.y * 0.2,
-                );
+                let next_text_position =
+                    Vector2::new(text_position.x, text_position.y - r.attr.char_size.y * 0.2);
                 self.draw_underline(next_text_position, l as f32, &r.attr);
+            }
+
+            if r.attr.underdashed {
+                self.draw_segmented_underline(text_position, 0.33, 2, l, &r.attr);
+            }
+
+            if r.attr.underdotted {
+                self.draw_segmented_underline(text_position, 0.15, 3, l, &r.attr);
             }
         }
     }
 
     fn draw_underline(&mut self, text_position: Vector2, region_len: f32, attr: &HlAttr) {
-        let desc = attr.font.get_descent();
+        let desc = attr.font.get_descent_ex().font_size(attr.font_size).done();
         let line = PackedVector2Array::from([
             Vector2::new(text_position.x, text_position.y + desc as f32),
             Vector2::new(
@@ -233,6 +239,29 @@ impl VimdowWindow {
             .draw_polyline_ex(&line, attr.special)
             .width(2.0)
             .done();
+    }
+
+    fn draw_segmented_underline(
+        &mut self,
+        text_position: Vector2,
+        segment_len: f32,
+        segments_per_char: i32,
+        region_len: usize,
+        attr: &HlAttr,
+    ) {
+        let desc = attr.font.get_descent_ex().font_size(attr.font_size).done();
+        let y = text_position.y + desc as f32;
+        for i in 0..region_len {
+            let left = Vector2::new(text_position.x + i as f32 * attr.char_size.x, y);
+            let right = Vector2::new(left.x + attr.char_size.x * segment_len, y);
+
+            for j in 0..segments_per_char {
+                let offset = j as f32 / segments_per_char as f32 * attr.char_size.x;
+                let left = Vector2::new(left.x + offset, left.y);
+                let right = Vector2::new(right.x + offset, right.y);
+                self.base_mut().draw_line(left, right, attr.special);
+            }
+        }
     }
 
     fn draw_cursor(&mut self) {

@@ -81,6 +81,8 @@ pub struct HlAttr {
     pub undercurl: bool,
     pub underline: bool,
     pub underdouble: bool,
+    pub underdotted: bool,
+    pub underdashed: bool,
     pub font_size: i32,
     pub char_size: Vector2,
 }
@@ -152,6 +154,8 @@ impl Highlighter {
             undercurl,
             underline: attr.contains_key("underline"),
             underdouble: attr.contains_key("underdouble"),
+            underdotted: attr.contains_key("underdotted"),
+            underdashed: attr.contains_key("underdashed"),
             font_size,
             char_size,
         }
