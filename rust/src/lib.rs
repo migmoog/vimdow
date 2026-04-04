@@ -205,15 +205,23 @@ impl VimdowWindow {
                     .done();
             }
 
+            let desc = r.attr.font.get_descent_ex()
+                .font_size(r.attr.font_size)
+                .done();
+
+            if r.attr.strikethrough {
+                self.draw_underline(text_position, l as f32, -desc / 2.0, &r.attr);
+            }
+
             if r.attr.underline {
-                self.draw_underline(text_position, l as f32, &r.attr);
+                self.draw_underline(text_position, l as f32, desc, &r.attr);
             }
 
             if r.attr.underdouble {
-                self.draw_underline(text_position, l as f32, &r.attr);
+                self.draw_underline(text_position, l as f32, desc, &r.attr);
                 let next_text_position =
                     Vector2::new(text_position.x, text_position.y - r.attr.char_size.y * 0.2);
-                self.draw_underline(next_text_position, l as f32, &r.attr);
+                self.draw_underline(next_text_position, l as f32, desc, &r.attr);
             }
 
             if r.attr.underdashed {
@@ -226,8 +234,7 @@ impl VimdowWindow {
         }
     }
 
-    fn draw_underline(&mut self, text_position: Vector2, region_len: f32, attr: &HlAttr) {
-        let desc = attr.font.get_descent_ex().font_size(attr.font_size).done();
+    fn draw_underline(&mut self, text_position: Vector2, region_len: f32, desc: f32, attr: &HlAttr) {
         let line = PackedVector2Array::from([
             Vector2::new(text_position.x, text_position.y + desc as f32),
             Vector2::new(
