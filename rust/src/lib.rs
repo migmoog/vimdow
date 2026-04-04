@@ -213,7 +213,7 @@ impl VimdowWindow {
                 self.draw_underline(text_position, l as f32, -desc / 2.0, &r.attr);
             }
 
-            if r.attr.underline {
+            if r.attr.underline || r.attr.url {
                 self.draw_underline(text_position, l as f32, desc, &r.attr);
             }
 

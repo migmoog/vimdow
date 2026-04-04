@@ -84,6 +84,7 @@ pub struct HlAttr {
     pub underdotted: bool,
     pub underdashed: bool,
     pub strikethrough: bool,
+    pub url: bool,
     pub font_size: i32,
     pub char_size: Vector2,
 }
@@ -129,10 +130,16 @@ impl Highlighter {
             (foreground, background) = (background, foreground);
         }
 
-        let special = match self.get_attr_color(hl_id, HlAttrColor::Special) {
+        let mut special = match self.get_attr_color(hl_id, HlAttrColor::Special) {
             Ok(fg) => fg,
             Err(bg) => bg,
         };
+
+        if let Some(blend_pct) = attr.get("blend").map(|i| (100.0 - i.to::<i32>() as f32) / 100.0 ) {
+            foreground.a = blend_pct;
+            background.a = blend_pct;
+            special.a = blend_pct;
+        }
 
         let font_size = self
             .base()
@@ -158,6 +165,7 @@ impl Highlighter {
             underdotted: attr.contains_key("underdotted"),
             underdashed: attr.contains_key("underdashed"),
             strikethrough: attr.contains_key("strikethrough"),
+            url: attr.contains_key("strikethrough"),
             font_size,
             char_size,
         }

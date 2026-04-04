@@ -1,3 +1,6 @@
+-- hl_decoration_test.lua
+-- Tests every hl_attr decoration style for a custom GUI renderer.
+-- Run with: nvim --clean -u hl_decoration_test.lua
 
 local api = vim.api
 
@@ -21,6 +24,14 @@ local styles = {
   { name = "D_Curl_Bold",      attrs = { undercurl     = true, bold = true }, sp = "#FF5555", label = "undercurl  + bold" },
   { name = "D_Double_Bold",    attrs = { underdouble   = true, bold = true }, sp = "#FF79C6", label = "underdouble + bold" },
 
+  -- ── blend ────────────────────────────────────────────────────────────────
+  { name = "D_Blend25",        attrs = { blend = 25  }, sp = nil, label = "blend=25  (nearly opaque)" },
+  { name = "D_Blend50",        attrs = { blend = 50  }, sp = nil, label = "blend=50  (half transparent)" },
+  { name = "D_Blend75",        attrs = { blend = 75  }, sp = nil, label = "blend=75  (mostly transparent)" },
+
+  -- ── url ──────────────────────────────────────────────────────────────────
+  { name = "D_Url",            attrs = { underline = true, url = "https://example.com" }, sp = "#57C7FF", label = "url  (underline + url attr)" },
+
   -- ── stacked decorations ──────────────────────────────────────────────────
   { name = "D_Under_Over",     attrs = { underline     = true, overline      = true }, sp = "#57C7FF", label = "underline  + overline" },
   { name = "D_Curl_Strike",    attrs = { undercurl     = true, strikethrough = true }, sp = "#FF5555", label = "undercurl  + strikethrough" },
@@ -32,9 +43,15 @@ local styles = {
 local TEXT = "The quick brown fox jumps over the lazy dog"
 
 for _, s in ipairs(styles) do
-  local attrs = vim.tbl_extend("force", s.attrs, { fg = "#F8F8F2" })
-  if s.sp then attrs.sp = s.sp end
-  api.nvim_set_hl(0, s.name, attrs)
+  local parts = { "highlight", s.name, "guifg=#F8F8F2" }
+  if s.sp then table.insert(parts, "guisp=" .. s.sp) end
+  local gui = {}
+  for k, v in pairs(s.attrs) do
+    if v == true then table.insert(gui, k) end
+  end
+  if s.attrs.blend then table.insert(parts, "blend=" .. s.attrs.blend) end
+  if #gui > 0 then table.insert(parts, "gui=" .. table.concat(gui, ",")) end
+  vim.cmd(table.concat(parts, " "))
 end
 
 -- ─── scratch buffer ──────────────────────────────────────────────────────────
@@ -57,6 +74,7 @@ local hl_ranges = {}
 local sections = {
   { heading = "── sp colour / fallback ────────────────────────────────────────────────", from = "D_Curl_Red" },
   { heading = "── + bold (baseline shift) ─────────────────────────────────────────────", from = "D_Under_Bold" },
+  { heading = "── blend ───────────────────────────────────────────────────────────────", from = "D_Blend25" },
   { heading = "── stacked decorations ─────────────────────────────────────────────────", from = "D_Under_Over" },
 }
 
