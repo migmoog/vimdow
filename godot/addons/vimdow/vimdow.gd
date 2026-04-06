@@ -15,6 +15,10 @@ const DEFAULT_SETTINGS = {
 }
 
 func _enter_tree() -> void:
+	if DisplayServer.get_name() == "headless": # CI/CD sanity check
+		print_debug("Skipping plugin initilization")
+		return
+	
 	for setting in DEFAULT_SETTINGS:
 		var full_setting = "vimdow/" + setting
 		if not ProjectSettings.has_setting(full_setting):

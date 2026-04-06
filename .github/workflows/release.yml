@@ -96,8 +96,8 @@ jobs:
           zip -r ../vimdow-plugin.zip addons/
 
       - uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/') || startsWith(inputs.ref, 'refs/tags/')
         with:
+          tag_name: ${{ inputs.ref || github.ref_name }}
           files: |
             vimdow-plugin.zip
             ${{ steps.export.outputs.archive_directory }}/*
