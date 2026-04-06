@@ -53,6 +53,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref || github.ref }}
 
       - name: Download debug artifacts
         uses: actions/download-artifact@v8
@@ -68,6 +70,21 @@ jobs:
           pattern: vimdow-lib-release-*
           path: godot/addons/vimdow/bin/release
 
+      - name: Make exports directory
+        run: |
+          mkdir exports
+
+      - name: Export standalone
+        uses: firebelley/godot-export@v7.0.0
+        id: export
+        with:
+          godot_executable_download_url: "https://downloads.godotengine.org/?version=4.6.2&flavor=stable&slug=linux.x86_64.zip&platform=linux.64"
+          godot_export_templates_download_url: "https://downloads.godotengine.org/?version=4.6.2&flavor=stable&slug=export_templates.tpz&platform=templates"
+          relative_project_path: ./godot/
+          archive_output: true
+          archive_root_folder: true
+
+
       - name: Add README and LICENSE
         run: |
           cp README.md godot/addons/vimdow/README.md
@@ -79,8 +96,10 @@ jobs:
           zip -r ../vimdow-plugin.zip addons/
 
       - uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || startsWith(inputs.ref, 'refs/tags/')
         with:
-          files: vimdow-plugin.zip
+          files: |
+            vimdow-plugin.zip
+            ${{ steps.export.outputs.archive_directory }}/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
