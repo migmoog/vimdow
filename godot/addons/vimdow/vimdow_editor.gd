@@ -64,6 +64,7 @@ func _ready() -> void:
 	if _is_standalone():
 		if _conf.load("user://vimdow.cfg") != OK:
 			_conf.set_value(MAIN_SECTION, "path_to_nvim", "/usr/bin/nvim")
+		print("DOODOO")
 		call_deferred("start")
 	else:
 		_conf.set_value(MAIN_SECTION, "path_to_nvim", ProjectSettings.get_setting("vimdow/path_to_nvim"))
@@ -170,7 +171,7 @@ func quit(_code: int):
 
 # checks if vimdow is the standalone app or the editor plugin
 func _is_standalone() -> bool:
-	return not Engine.is_editor_hint()
+	return not Engine.is_editor_hint() and DisplayServer.get_name() != "headless"
 
 
 func get_editor_grid_size(s: Vector2) -> Vector2i:
