@@ -9,6 +9,7 @@ var editor: VimdowEditor
 var window_wrapper: Window
 
 var pop_out_shortcut: Shortcut
+var focus_shortcut: Shortcut
 
 const DEFAULT_SETTINGS = {
 	"path_to_nvim" : "/usr/bin/nvim",
@@ -45,6 +46,17 @@ func _enter_tree() -> void:
 	EditorInterface.get_editor_settings()\
 			.add_shortcut("vimdow/pop_out_window", pop_out_shortcut)
 
+	focus_shortcut = Shortcut.new()
+	var fev = InputEventKey.new()
+	fev.pressed = true
+	fev.ctrl_pressed = true
+	fev.alt_pressed = true
+	fev.keycode = KEY_V
+	focus_shortcut.events = [fev]
+
+	EditorInterface.get_editor_settings()\
+			.add_shortcut("vimdow/focus", focus_shortcut)
+
 	_make_visible(false)
 	
 	main_screen_changed.connect(_on_main_screen_changed)
@@ -58,6 +70,11 @@ func _exit_tree() -> void:
 		window_wrapper.queue_free()
 
 func _input(event: InputEvent) -> void:
+	if event.is_pressed() and focus_shortcut.matches_event(event):
+		get_viewport().set_input_as_handled()
+		EditorInterface.set_main_screen_editor(MAIN_SCREEN_NAME)
+		return
+	
 	if editor.visible \
 			and event.is_pressed() \
 			and  pop_out_shortcut.matches_event(event):
