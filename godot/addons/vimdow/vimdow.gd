@@ -23,6 +23,7 @@ func _enter_tree() -> void:
 		var full_setting = "vimdow/" + setting
 		if not ProjectSettings.has_setting(full_setting):
 			ProjectSettings.set_setting(full_setting, DEFAULT_SETTINGS[setting])
+		ProjectSettings.set_initial_value(full_setting, DEFAULT_SETTINGS[setting])
 	
 	editor = EDITOR.instantiate()
 	EditorInterface.get_editor_main_screen().add_child(editor)
