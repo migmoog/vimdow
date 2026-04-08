@@ -57,4 +57,4 @@ Edit `addons/vimdow/vimdow_theme.tres` in the editor to do things like change fo
 
 #### Shortcuts
 
-Check the "Vimdow" section in the Editor Settings to change key shortcuts for things like changing the font size.
+Keyboard shortcuts (such as font size) are located under `Editor Settings > Shortcuts > Vimdow`.
