@@ -3,7 +3,8 @@ use std::collections::HashSet;
 use std::ffi::OsStr;
 use std::io::{self, Write};
 use std::process::{Child, Command, ExitStatus, Stdio};
-use std::sync::mpsc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, mpsc};
 use std::thread::{self, JoinHandle};
 
 use rmpv::Value;
@@ -13,6 +14,7 @@ use crate::neovim::msgpack::godot_to_rmpv;
 
 pub struct NeovimProcess {
     child: Child,
+    shutdown: Arc<AtomicBool>,
     _from_handle: JoinHandle<()>,
     _to_handle: JoinHandle<()>,
     // the receiver that takes the decoded mspack values
@@ -34,10 +36,13 @@ impl NeovimProcess {
 
         let mut child = child_builder.spawn().map_err(VimdowError::IO)?;
 
+        let shutdown = Arc::new(AtomicBool::new(false));
+
         let (to, recv_in_process) = mpsc::channel::<Vec<u8>>();
         let mut stdin = child.stdin.take().expect("Stdin is not available");
+        let shutdown_to = shutdown.clone();
         let to_handle = thread::spawn(move || {
-            loop {
+            while !shutdown_to.load(Ordering::Relaxed) {
                 if let Ok(buf) = recv_in_process.recv() {
                     if let Err(e) = stdin.write_all(&buf[..]) {
                         godot_error!("Couldn't write to neovim: {e}");
@@ -48,8 +53,9 @@ impl NeovimProcess {
 
         let (send_from_process, from) = mpsc::channel();
         let mut stdout = child.stdout.take().expect("Stdout is not available");
+        let shutdown_from = shutdown.clone();
         let from_handle = thread::spawn(move || {
-            loop {
+            while !shutdown_from.load(Ordering::Relaxed) {
                 if let Ok(value) = rmpv::decode::read_value(&mut stdout) {
                     send_from_process
                         .send(value)
@@ -59,7 +65,8 @@ impl NeovimProcess {
         });
 
         Ok(Self {
-            child: child,
+            child,
+            shutdown,
             to,
             from,
             _from_handle: from_handle,
@@ -124,5 +131,14 @@ impl NeovimProcess {
 
     pub fn try_wait(&mut self) -> io::Result<Option<ExitStatus>> {
         self.child.try_wait()
+    }
+}
+
+impl Drop for NeovimProcess {
+    fn drop(&mut self) {
+        self.shutdown.store(true, Ordering::Relaxed);
+
+        let _ecode = self.child.kill();
+        let _ecode = self.child.wait();
     }
 }
