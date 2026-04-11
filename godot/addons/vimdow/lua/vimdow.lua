@@ -13,7 +13,7 @@ if Vimdow.is_godot_project then
 		callback = function ()
 			local cmd = vim.lsp.rpc.connect("127.0.0.1", tonumber(langserver_port))
 			vim.lsp.start {
-				name = "godot",
+				name = "gdscript",
 				cmd = cmd,
 				root_dir = root_dir,
 				filetypes = { "gdscript", "gd" },
