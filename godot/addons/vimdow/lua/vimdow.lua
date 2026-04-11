@@ -1,23 +1,18 @@
+local cfg = vim.lsp.config["gdscript"]
+local markers = (cfg and cfg.root_markers) or { "project.godot" }
+
 _G.Vimdow = {
-	is_godot_project = false,
+	is_godot_project = vim.fs.root(0, markers) ~= nil,
 }
 
-local root_dir = vim.fs.root(0, { "project.godot" })
-Vimdow.is_godot_project = root_dir ~= nil
+-- if set, overrides nvim-lspconfig's default port (6005)
+local langserver_port = os.getenv "GODOT_LANGSERVER_PORT"
 
-if Vimdow.is_godot_project then
-	-- Automatically connect to the language server
-	local langserver_port = os.getenv("GODOT_LANGSERVER_PORT")
-	vim.api.nvim_create_autocmd("FileType", {
-		pattern = { "gdscript", "gd" },
-		callback = function ()
-			local cmd = vim.lsp.rpc.connect("127.0.0.1", tonumber(langserver_port))
-			vim.lsp.start {
-				name = "gdscript",
-				cmd = cmd,
-				root_dir = root_dir,
-				filetypes = { "gdscript", "gd" },
-			}
-		end,
+if langserver_port then
+	vim.lsp.config("gdscript", {
+		cmd = vim.lsp.rpc.connect("127.0.0.1", tonumber(langserver_port)),
 	})
 end
+
+-- NOTE: this will only activate based on filetypes and root_markers
+vim.lsp.enable "gdscript"
