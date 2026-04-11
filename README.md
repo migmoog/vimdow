@@ -42,6 +42,8 @@ Vimdow aims to provide this accessibility to Godot developers!
 
 ## Configuration
 
+**Requirements**: Neovim 0.11 or later.
+
 Vimdow only needs to know where Neovim's binary is located on your system to get working. By default both modes assume 
 that your on linux and set the path to `/usr/bin/nvim`
 
