@@ -18,7 +18,7 @@ var options := {}
 var cwd: String
 
 @export_file_path() var startup_script: String
-@onready var client = $NeovimClient
+@onready var client: NeovimClient = $NeovimClient
 @onready var w = $VimdowWindow
 
 ## The viewport that the editor obeys the size of
@@ -92,6 +92,8 @@ func start() -> void:
 		OS.set_environment("GODOT_LANGSERVER_PORT", str(_get_editor_interface()\
 			.get_editor_settings()\
 			.get_setting("network/language_server/remote_port")))
+
+		OS.set_environment("GODOT_VERSION", Engine.get_version_info().string)
 	
 	var args := PackedStringArray(["--embed"])
 	if not _is_standalone():

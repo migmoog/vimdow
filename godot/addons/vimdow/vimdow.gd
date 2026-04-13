@@ -8,6 +8,8 @@ var _last_main_screen: String = ""
 var editor: VimdowEditor
 var window_wrapper: Window
 
+var debugger: VimdowDebugger
+
 var pop_out_shortcut: Shortcut
 
 const DEFAULT_SETTINGS = {
@@ -44,6 +46,10 @@ func _enter_tree() -> void:
 	
 	main_screen_changed.connect(_on_main_screen_changed)
 
+	debugger = VimdowDebugger.new()
+	debugger.editor = editor
+	add_debugger_plugin(debugger)
+
 
 func _exit_tree() -> void:
 	if editor:
@@ -51,6 +57,8 @@ func _exit_tree() -> void:
 		editor.queue_free()
 	if window_wrapper:
 		window_wrapper.queue_free()
+	if debugger:
+		remove_debugger_plugin(debugger)
 
 func _input(event: InputEvent) -> void:
 	if editor.visible \
