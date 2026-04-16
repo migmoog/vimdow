@@ -1,44 +1,63 @@
-
-
 _G.Vimdow = {
 	-- breakpoints managed by the godot editor
-	_gd_breakpoints = {},
+	breakpoints = {},
 }
 local env = os.getenv
 
-function Vimdow.toggle_breakpoint (buf, line)
-	local bps = Vimdow._gd_breakpoints[buf]
-	if bps then
-		local bpi
-		for i, v in ipairs(bps) do
-			if v == line then
-				bpi = i
-				break
+local BREAKPOINTS_GROUP = "vimdow_breakpoints"
+
+function Vimdow.clear_breakpoints (buf)
+	vim.fn.sign_unplace(BREAKPOINTS_GROUP)
+	Vimdow.breakpoints[buf] = {}
+end
+
+function Vimdow.set_breakpoint (buf, line, val)
+	if not Vimdow.breakpoints[buf] then
+		Vimdow.breakpoints[buf] = {}
+	end
+
+	if val then
+		if Vimdow.breakpoints[buf][line] then
+			return
+		end
+
+		Vimdow.breakpoints[buf][line] = vim.fn.sign_place(0, BREAKPOINTS_GROUP, "GodotBreakpoint", buf, {
+			lnum = line,
+		})
+	else
+		if not Vimdow.breakpoints[buf][line] then
+			return
+		end
+
+		vim.fn.sign_unplace(BREAKPOINTS_GROUP, {
+			buffer = buf,
+			id = Vimdow.breakpoints[buf][line],
+		})
+		Vimdow.breakpoints[buf][line] = nil
+	end
+
+	local result = vim.fn.rpcrequest(1, "vimdow_set_breakpoint", buf, line)
+	if result ~= vim.NIL then
+		vim.print(result)
+	end
+end
+
+function Vimdow.get_breakpoint (buf, line)
+	local bps = Vimdow.breakpoints[buf]
+	if not bps then
+		return false
+	elseif bps then
+		for k, _ in pairs(bps) do
+			if k == line then
+				return true
 			end
 		end
-
-		if bpi then
-			table.remove(bps, bpi)
-			vim.fn.sign_unplace("vimdow_breakpoints", {
-				buffer = buf,
-			})
-		else
-			table.insert(bps, bpi)
-			vim.fn.sign_place(0, "vimdow_breakpoints", "GodotBreakpoint", buf, {
-				lnum = line,
-			})
-		end
-
-		local result = vim.fn.rpcrequest(1, "vimdow_toggle_breakpoint", buf, line)
-		-- result is nil on success
-		if result then
-			vim.print(result)
-		end
-	else
-		bps = {}
-		table.insert(bps, line)
-		Vimdow._gd_breakpoints[buf] = bps
+		return false
 	end
+end
+
+function Vimdow.toggle_breakpoint (buf, line)
+	Vimdow.set_breakpoint(buf, line, not Vimdow.get_breakpoint(buf, line))
 end
 
 function Vimdow.setup (opts)
@@ -64,22 +83,36 @@ function Vimdow.setup (opts)
 
 	local keybinds = opts.keybinds
 	if keybinds then
-		local tb = keybinds.toggle_breakpoint or "gb"
+		local tb = keybinds.toggle_breakpoint or "<leader>gb"
 		vim.keymap.set("n", tb, function ()
-			local buf = vim.bo[vim.api.nvim_get_current_buf()]
+			local bufnr = vim.api.nvim_get_current_buf()
+			local buf = vim.bo[bufnr]
 
 			if buf.filetype ~= "gdscript" then
 				return
 			end
 
-			local _, linenum = vim.api.nvim_win_get_cursor(0)
-			Vimdow.toggle_breakpoint(buf, linenum)
+			local linenum = vim.api.nvim_win_get_cursor(0)[1]
+			Vimdow.toggle_breakpoint(vim.fn.bufname(), linenum)
 		end, {
 			desc = "toggle godot breakpoint on cursor line",
+		})
+
+		local cb = keybinds.clear_breakpoints or "<leader>cb"
+		vim.keymap.set("n", cb, function ()
+			local bufnr = vim.api.nvim_get_current_buf()
+			local buf = vim.bo[bufnr]
+
+			if buf.filetype ~= "gdscript" then
+				return
+			end
+			Vimdow.clear_breakpoints(vim.fn.bufname())
+		end, {
+			desc = "clear all godot breakpoints in this buffer",
 		})
 	end
 end
 
 -- plugin initilization
-local user_config = dofile("addons/vimdow/lua/vimdow/config.lua")
+local user_config = dofile "addons/vimdow/lua/vimdow/config.lua"
 Vimdow.setup(user_config)

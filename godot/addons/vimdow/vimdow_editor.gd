@@ -2,6 +2,13 @@
 class_name VimdowEditor
 extends MarginContainer
 
+enum Mode {
+	STANDALONE,
+	PLUGIN_MAIN_SCREEN,
+	PLUGIN_FLOATING,
+}
+var current_mode: Mode
+
 ## Neovim ui docs state that there is only ever one
 ## grid index passed to grid events, 1 the global grid
 # NOTE: an option in the future might be to have an "ext_multigrid" toggle that 

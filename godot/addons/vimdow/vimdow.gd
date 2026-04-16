@@ -47,7 +47,8 @@ func _enter_tree() -> void:
 	main_screen_changed.connect(_on_main_screen_changed)
 
 	debugger = VimdowDebugger.new()
-	debugger.editor = editor
+	# debugger.editor = editor
+	debugger.setup(editor)
 	add_debugger_plugin(debugger)
 
 

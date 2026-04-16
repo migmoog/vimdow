@@ -21,7 +21,12 @@ pub struct NeovimProcess {
     to: mpsc::Sender<Vec<u8>>,
 
     msgid: u32,
+
+    // requests sent by the client waiting for responses
     pending_requests: HashSet<u32>,
+
+    // requests sent by the server waiting for responses
+    pending_responses: HashSet<u32>,
 }
 
 impl NeovimProcess {
@@ -66,6 +71,7 @@ impl NeovimProcess {
             _to_handle: to_handle,
             msgid: 0,
             pending_requests: HashSet::new(),
+            pending_responses: HashSet::new(),
         })
     }
 
@@ -74,13 +80,24 @@ impl NeovimProcess {
 
         if let Value::Array(ref vec) = v
             && let [Value::Integer(msgtype), Value::Integer(msgid), ..] = vec.as_slice()
-            && let Some(1) = msgtype.as_i64()
+        // && let Some(1) = msgtype.as_i64()
         {
-            let msgid = msgid.as_u64().unwrap() as u32;
-            assert!(
-                self.pending_requests.remove(&msgid),
-                "No msgid ({msgid}), exists"
-            );
+            match (msgtype.as_i64(), msgid.as_i64().map(|i| i as u32)) {
+                // request from server
+                (Some(0), Some(msgid)) => {
+                    self.pending_responses.insert(msgid);
+                }
+
+                // response from server
+                (Some(1), Some(msgid)) => {
+                    assert!(
+                        self.pending_requests.remove(&msgid),
+                        "No msgid ({msgid}), exists"
+                    );
+                }
+
+                _ => {}
+            }
         } else if !v.is_array() {
             godot_print!("Received a non-rpc value: {}", v);
         }
@@ -107,7 +124,7 @@ impl NeovimProcess {
         let rpc = varray![0, ogid, method, &params];
         let val = godot_to_rmpv(rpc.to_variant());
         let mut buf = Vec::new();
-        rmpv::encode::write_value(&mut buf, &val).expect("Couldn't serialize value");
+        rmpv::encode::write_value(&mut buf, &val).expect("Couldn't serialize request");
         self.msgid += 1;
         self.pending_requests.insert(ogid);
 
@@ -120,6 +137,22 @@ impl NeovimProcess {
         }
 
         ogid as i32
+    }
+
+    pub fn var_respond(&mut self, msgid: i32, error: Variant, result: Variant) {
+        let rpc = varray![1, msgid, &error, &result];
+        let val = godot_to_rmpv(rpc.to_variant());
+        let mut buf = Vec::new();
+        rmpv::encode::write_value(&mut buf, &val).expect("Couldn't serialize response");
+
+        assert!(
+            self.pending_responses.remove(&(msgid as u32)),
+            "No request from server of '{msgid}'"
+        );
+
+        if let Err(se) = self.to.send(buf) {
+            godot_error!("{se}")
+        }
     }
 
     pub fn try_wait(&mut self) -> io::Result<Option<ExitStatus>> {

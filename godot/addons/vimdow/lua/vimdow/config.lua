@@ -4,7 +4,7 @@ return {
 	--		path to the project.godot file, by default searches for one in godot's
 	--		working directory
 	-- Default keybindings for vimdow actions
-	-- keybinds = {
+	keybinds = {
 	-- 	toggle_breakpoint = "gb",
-	-- },
+	},
 }
