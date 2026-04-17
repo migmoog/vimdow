@@ -38,6 +38,9 @@ impl NeovimClient {
     fn neovim_response(msgid: i32, error: Variant, result: Variant);
 
     #[signal]
+    fn neovim_request(msgid: i32, method: String, params: VarArray);
+
+    #[signal]
     fn neovim_quit(status: i32);
 
     #[func]
@@ -65,10 +68,18 @@ impl NeovimClient {
 
     #[func]
     fn request(&mut self, method: String, params: VarArray) -> i32 {
-        let Some(ref mut np) = self.nvim_process else {
+        let Some(np) = self.nvim_process.as_mut() else {
             return -1;
         };
         np.var_request(&method, params)
+    }
+
+    #[func]
+    fn respond(&mut self, msgid: i32, error: Variant, result: Variant) {
+        let Some(np) = self.nvim_process.as_mut() else {
+            return;
+        };
+        np.var_respond(msgid, error, result);
     }
 
     #[func]
@@ -180,9 +191,7 @@ impl NeovimClient {
         };
 
         for event in inputs_buffer.iter_shared() {
-            if let Some(nim) =
-                NvimInputMouse::from_input_event(event, grid_index, cell_size)
-            {
+            if let Some(nim) = NvimInputMouse::from_input_event(event, grid_index, cell_size) {
                 nim.apply(np);
             }
         }
@@ -199,9 +208,7 @@ impl INode for NeovimClient {
         };
 
         if let Ok(Some(e)) = np.try_wait() {
-            self.signals()
-                .neovim_quit()
-                .emit(e.code().unwrap_or(-1));
+            self.signals().neovim_quit().emit(e.code().unwrap_or(-1));
             return;
         }
 
@@ -234,7 +241,22 @@ impl INode for NeovimClient {
                         );
                     }
                 }
-                0 => godot_warn!("Haven't implemented requests yet"),
+                0 => {
+                    if let [
+                        Value::Integer(msgid),
+                        Value::String(method),
+                        // Value::Array(params),
+                        // method,
+                        params,
+                    ] = &rpc[1..4]
+                    {
+                        self.signals().neovim_request().emit(
+                            msgid.as_i64().unwrap() as i32,
+                            method.to_string(),
+                            &rmpv_to_godot(params.to_owned()).to(),
+                        );
+                    }
+                }
                 _ => godot_error!("Got a non-existent message type: {msgtype}"),
             }
         }
