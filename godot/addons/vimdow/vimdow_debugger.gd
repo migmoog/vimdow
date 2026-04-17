@@ -4,15 +4,18 @@ extends EditorDebuggerPlugin
 
 var editor: VimdowEditor
 
+var plugin_breakpoints := {}
+
 func setup(e: VimdowEditor):
 	editor = e
 	editor.client.neovim_request.connect(_on_neovim_request)
 
 func _goto_script_line(script: Script, line: int) -> void:
 	var path := ProjectSettings.globalize_path(script.resource_path)
-	var cmd = "e +%d %s" % [line, path]
+	var cmd = "e +%d %s" % [line+1, path]
 	EditorInterface.set_main_screen_editor("Vimdow")
-	editor.client.request("nvim_parse_cmd", [cmd, {}])
+	# NOTE: nvim_command is deprecated but it's simpler than nvim_parse_cmd -> nvim_cmd
+	editor.client.request("nvim_command", [cmd])
 
 func vimdow_set_breakpoint(buf: String, line: int) -> Variant:
 	print("Getting called~")
