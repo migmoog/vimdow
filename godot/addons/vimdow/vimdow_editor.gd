@@ -204,16 +204,15 @@ func _grid_assert(grid: int):
 
 
 ## Opens a file in vimdow
-func open_file(path: String):
+func open_file(path: String, line: int = -1):
 	if attached:
-		client.request("nvim_cmd", [{
-			cmd = "e",
-			args = [path]
-		}, 
-		{
-			output = OS.is_debug_build()
-		}])
+		var cmd = ("e +%d " % line if line > 0 else "e ") + path
+		client.request("nvim_command", [cmd])
 
+## Instructs the lua plugin to clear all breakpoints
+func clear_breakpoints(path = ""):
+	assert(attached)
+	client.request("nvim_command", [ "VimdowClearBreakpoints " + path ])
 
 #region REDRAW_EVENTS
 func flush():
@@ -435,6 +434,7 @@ func lock_to_window(v: Window):
 			"Editor can only lock to one viewport at a time")
 	viewport_lock = v
 	v.size_changed.connect(_on_viewport_lock_size_changed)
+	_on_viewport_lock_size_changed()
 
 
 ## Removes the editor from the current viewport its locked to

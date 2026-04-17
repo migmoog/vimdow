@@ -7,8 +7,15 @@ local env = os.getenv
 local BREAKPOINTS_GROUP = "vimdow_breakpoints"
 
 function Vimdow.clear_breakpoints (buf)
-	vim.fn.sign_unplace(BREAKPOINTS_GROUP)
-	Vimdow.breakpoints[buf] = {}
+	if buf then
+		vim.fn.sign_unplace(BREAKPOINTS_GROUP, {
+			buffer = buf,
+		})
+		Vimdow.breakpoints[buf] = {}
+	else
+		vim.fn.sign_unplace(BREAKPOINTS_GROUP)
+		Vimdow.breakpoints = {}
+	end
 end
 
 function Vimdow.set_breakpoint (buf, line, val)
@@ -36,7 +43,7 @@ function Vimdow.set_breakpoint (buf, line, val)
 		Vimdow.breakpoints[buf][line] = nil
 	end
 
-	local result = vim.fn.rpcrequest(1, "vimdow_set_breakpoint", buf, line)
+	local result = vim.fn.rpcrequest(1, "vimdow_set_breakpoint", buf, line, val)
 	if result ~= vim.NIL then
 		vim.print(result)
 	end
@@ -109,6 +116,12 @@ function Vimdow.setup (opts)
 			Vimdow.clear_breakpoints(vim.fn.bufname())
 		end, {
 			desc = "clear all godot breakpoints in this buffer",
+		})
+
+		vim.api.nvim_create_user_command("VimdowClearBreakpoints", function (o)
+			Vimdow.clear_breakpoints(o.fargs[1])
+		end, {
+			nargs = "?",
 		})
 	end
 end

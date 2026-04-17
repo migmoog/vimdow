@@ -4,22 +4,64 @@ extends EditorDebuggerPlugin
 
 var editor: VimdowEditor
 
-var plugin_breakpoints := {}
+var breakpoints := {}
 
 func setup(e: VimdowEditor):
 	editor = e
 	editor.client.neovim_request.connect(_on_neovim_request)
 
+func set_sesh_breakpoint(sesh: EditorDebuggerSession, buffer_name: String, line: int, enabled: bool):
+	sesh.set_breakpoint(ProjectSettings.localize_path(buffer_name), line, enabled)
+
 func _goto_script_line(script: Script, line: int) -> void:
 	var path := ProjectSettings.globalize_path(script.resource_path)
-	var cmd = "e +%d %s" % [line+1, path]
-	EditorInterface.set_main_screen_editor("Vimdow")
-	# NOTE: nvim_command is deprecated but it's simpler than nvim_parse_cmd -> nvim_cmd
-	editor.client.request("nvim_command", [cmd])
+	editor.open_file(path, line+1)
 
-func vimdow_set_breakpoint(buf: String, line: int) -> Variant:
-	print("Getting called~")
+func _breakpoints_cleared_in_tree() -> void:
+	for sesh in get_sessions():
+		for buf in breakpoints:
+			for line in breakpoints[buf]:
+				set_sesh_breakpoint(sesh, buf, line, false)
+	editor.clear_breakpoints()
+	breakpoints.clear()
+
+func _breakpoint_set_in_tree(script: Script, line: int, enabled: bool) -> void:
+	var path = ProjectSettings.globalize_path(script.resource_path)
+	for sesh in get_sessions():
+		sesh.set_breakpoint(script.resource_path, line, enabled)
+	editor.clear_breakpoints(path)
+	breakpoints[path].clear()
+
+func vimdow_set_breakpoint(buf: String, line: int, enabled: bool) -> Variant:
+	if breakpoints.has(buf):
+		breakpoints[buf][line] = enabled
+	else:
+		breakpoints[buf] = {
+			line: enabled
+		}
+	for sesh in get_sessions():
+		set_sesh_breakpoint(sesh, buf, line, enabled)
 	return [null, null]
+
+func _setup_session(session_id: int) -> void:
+	var sesh = get_session(session_id)
+	sesh.started.connect(_on_session_started.bind(session_id))
+	sesh.stopped.connect(_on_session_stopped)
+	sesh.breaked.connect(_on_session_break)
+
+func _on_session_started(session_id: int):
+	var sesh = get_session(session_id)
+	for path in breakpoints:
+		for line in breakpoints[path]:
+			if breakpoints[path][line]:
+				set_sesh_breakpoint(sesh, path, line, true)
+
+
+func _on_session_stopped():
+	pass
+
+func _on_session_break(can_debug: bool):
+	pass
 
 func _on_neovim_request(msgid: int, method: String, params: Array) -> void:
 	# neovim surrounds this with quotes for some reason
