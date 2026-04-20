@@ -1,10 +1,17 @@
 -- Base config file for using vimdow
 return {
-	-- root_dir: string
-	--		path to the project.godot file, by default searches for one in godot's
-	--		working directory
 	-- Default keybindings for vimdow actions
 	keybinds = {
-	-- 	toggle_breakpoint = "gb",
+		-- toggle_breakpoint = "<leader>gb",
+		-- clear_breakpoints = "<leader>cb"
+	},
+
+	-- default color themes
+	colors = {
+		-- color when a brekpoint gutter is hovered with a mouse
+		-- breakpoint_hover = "#ffabb2",
+
+		-- color when a breakpoint is set
+		-- set_breakpoint = "#ff0016"
 	},
 }

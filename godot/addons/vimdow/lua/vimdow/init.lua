@@ -85,11 +85,12 @@ function Vimdow.setup (opts)
 
 	local gd_version = opts.gd_version or env "GODOT_VERSION"
 
+	local colors = opts.colors or {}
 	Vimdow.hover_breakpoint_hl = "VimdowHoverBreakpoint"
-	vim.api.nvim_set_hl(0, Vimdow.hover_breakpoint_hl, { fg = opts.breakpoint_hover_fg or "#ffabb2" })
+	vim.api.nvim_set_hl(0, Vimdow.hover_breakpoint_hl, { fg = colors.breakpoint_hover or "#ffabb2" })
 
 	Vimdow.set_breakpoint_hl = "VimdowSetBreakpoint"
-	vim.api.nvim_set_hl(0, Vimdow.set_breakpoint_hl, { fg = opts.breakpoint_hover_bg or "#ff0016" })
+	vim.api.nvim_set_hl(0, Vimdow.set_breakpoint_hl, { fg = colors.set_breakpoint or "#ff0016" })
 
 	vim.fn.sign_define("GodotBreakpoint", {
 		text = "",

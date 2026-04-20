@@ -60,3 +60,25 @@ Edit `addons/vimdow/vimdow_theme.tres` in the editor to do things like change fo
 #### Shortcuts
 
 Keyboard shortcuts (such as font size) are located under `Editor Settings > Shortcuts > Vimdow`.
+
+#### Lua plugin
+
+Vimdow is also a neovim plugin. The code for it is located in `addons/vimdow/lua`. In it is the `init.lua` script that is used on neovim startup with the `-S` flag. The other file is the configurations, the defaults of which are:
+```lua
+{
+	-- Default keybindings for vimdow actions
+	keybinds = {
+		toggle_breakpoint = "<leader>gb",
+		clear_breakpoints = "<leader>cb"
+	},
+
+	-- default color themes
+	colors = {
+		-- color when a brekpoint gutter is hovered with a mouse
+		breakpoint_hover = "#ffabb2",
+
+		-- color when a breakpoint is set
+		set_breakpoint = "#ff0016"
+	},
+}
+```
