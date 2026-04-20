@@ -30,6 +30,7 @@ function Vimdow.set_breakpoint (buf, line, val)
 
 		Vimdow.breakpoints[buf][line] = vim.fn.sign_place(0, BREAKPOINTS_GROUP, "GodotBreakpoint", buf, {
 			lnum = line,
+			priority = 43,
 		})
 	else
 		if not Vimdow.breakpoints[buf][line] then
@@ -138,12 +139,46 @@ function Vimdow.setup (opts)
 	})
 
 	-- setting breakpoints with the mouse
-	vim.keymap.set("n", "<MouseMove>", function (o)
+	Vimdow.bpmouse = {
+		line = -1,
+		signid = 1,
+	}
+	-- breakpoint hover
+	vim.keymap.set("n", "<MouseMove>", function ()
 		local pos = vim.fn.getmousepos()
-		if vim.bo[vim.api.nvim_get_current_buf()].filetype ~= "gdscript" or pos.column >= 4 then
+		if vim.bo.filetype ~= "gdscript" or pos.line == 0 then
 			return
 		end
+
+		local b = Vimdow.bpmouse
+		local function remove_hover()
+			if b.line > -1 then
+				vim.fn.sign_unplace "hover"
+			end
+		end
+		if pos.wincol > 5 then
+			remove_hover()
+			b.line = -1
+		elseif pos.line ~= b.line then
+			remove_hover()
+
+			b.line = pos.line
+			vim.fn.sign_place(b.signid, "hover", "GodotBreakpointHover", vim.fn.bufname(), {
+				lnum = b.line,
+				priority = 42,
+			})
+		end
 	end, {})
+
+	-- breakpoint set with mouse
+	vim.keymap.set("n", "<LeftRelease>", function ()
+		local pos = vim.fn.getmousepos()
+		if vim.bo.filetype ~= "gdscript" or pos.line == 0 or pos.wincol > 5 then
+			return
+		end
+
+		Vimdow.toggle_breakpoint(vim.fn.bufname(), pos.line)
+	end)
 end
 
 -- plugin initilization

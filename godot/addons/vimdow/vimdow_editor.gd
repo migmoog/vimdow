@@ -204,6 +204,15 @@ func _grid_assert(grid: int):
 	assert(grid == grid_index, "Shouldn't receive an index for a different grid")
 
 
+#region NEOVIM_COMMANDS
+
+## checks the size of the control and requests neovim to try and resize
+func try_resize() -> void:
+	if not is_node_ready() or not attached:
+		return
+	var s := get_editor_grid_size(w.size)
+	client.request("nvim_ui_try_resize", [s.x, s.y])
+
 ## Opens a file in vimdow
 func open_file(path: String, line: int = -1):
 	if attached:
@@ -220,6 +229,8 @@ func set_breakpoint(path: String, line: int, enabled: bool):
 	assert(attached)
 	var command_str = "lua Vimdow.set_breakpoint(\"%s\", %d, %s)"% [path, line, enabled]
 	client.request("nvim_command", [ command_str ])
+
+#endregion
 
 #region REDRAW_EVENTS
 func flush():
@@ -422,12 +433,6 @@ func _log_responses(msgid: int, error: Variant, result: Variant) -> void:
 	print("msgid: %d, error: %s, result: %s" % [msgid, str(error), str(result)])
 #endregion
 
-
-func try_resize() -> void:
-	if not is_node_ready() or not attached:
-		return
-	var s := get_editor_grid_size(w.size)
-	client.request("nvim_ui_try_resize", [s.x, s.y])
 
 
 ## Forces the editor to follow the same size
