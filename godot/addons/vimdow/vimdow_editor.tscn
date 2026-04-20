@@ -5,7 +5,6 @@
 [ext_resource type="PackedScene" uid="uid://disu5t63djq7v" path="res://addons/vimdow/non_multigrid.tscn" id="3_bivy3"]
 
 [node name="VimdowEditor" type="MarginContainer" unique_id=909240016]
-visible = false
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0

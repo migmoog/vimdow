@@ -71,7 +71,6 @@ func _ready() -> void:
 	if _is_standalone():
 		if _conf.load("user://vimdow.cfg") != OK:
 			_conf.set_value(MAIN_SECTION, "path_to_nvim", "/usr/bin/nvim")
-		print("DOODOO")
 		call_deferred("start")
 	else:
 		_conf.set_value(MAIN_SECTION, "path_to_nvim", ProjectSettings.get_setting("vimdow/path_to_nvim"))

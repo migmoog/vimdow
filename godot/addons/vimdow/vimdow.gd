@@ -130,7 +130,9 @@ func _make_visible(visible: bool) -> void:
 	if window_wrapper.visible:
 		_focus_last_editor()
 		window_wrapper.show()
+	if visible:
 		editor.grab_focus()
+	
 
 func _focus_last_editor():
 	if window_wrapper.visible:
