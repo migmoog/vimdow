@@ -84,46 +84,66 @@ function Vimdow.setup (opts)
 
 	local gd_version = opts.gd_version or env "GODOT_VERSION"
 
+	Vimdow.hover_breakpoint_hl = "VimdowHoverBreakpoint"
+	vim.api.nvim_set_hl(0, Vimdow.hover_breakpoint_hl, { fg = opts.breakpoint_hover_fg or "#ffabb2" })
+
+	Vimdow.set_breakpoint_hl = "VimdowSetBreakpoint"
+	vim.api.nvim_set_hl(0, Vimdow.set_breakpoint_hl, { fg = opts.breakpoint_hover_bg or "#ff0016" })
+
 	vim.fn.sign_define("GodotBreakpoint", {
 		text = "",
+		texthl = Vimdow.set_breakpoint_hl,
 	})
 
-	local keybinds = opts.keybinds
-	if keybinds then
-		local tb = keybinds.toggle_breakpoint or "<leader>gb"
-		vim.keymap.set("n", tb, function ()
-			local bufnr = vim.api.nvim_get_current_buf()
-			local buf = vim.bo[bufnr]
+	vim.fn.sign_define("GodotBreakpointHover", {
+		text = "",
+		texthl = Vimdow.hover_breakpoint_hl,
+	})
 
-			if buf.filetype ~= "gdscript" then
-				return
-			end
+	-- breakpoint toggling
+	local keybinds = opts.keybinds or {}
+	local tb = keybinds.toggle_breakpoint or "<leader>gb"
+	vim.api.nvim_create_user_command("VimdowToggleBreakpoint", function (o)
+		if vim.bo.filetype ~= "gdscript" then
+			return
+		end
 
-			local linenum = vim.api.nvim_win_get_cursor(0)[1]
-			Vimdow.toggle_breakpoint(vim.fn.bufname(), linenum)
-		end, {
-			desc = "toggle godot breakpoint on cursor line",
-		})
+		local linenum = tonumber(o.fargs[1]) or vim.api.nvim_win_get_cursor(0)[1]
+		Vimdow.toggle_breakpoint(vim.fn.bufname(), linenum)
+	end, {
+		nargs = "?",
+	})
+	vim.keymap.set("n", tb, ":VimdowToggleBreakpoint<CR>", {
+		desc = "toggle godot breakpoint on cursor line",
+	})
 
-		local cb = keybinds.clear_breakpoints or "<leader>cb"
-		vim.keymap.set("n", cb, function ()
-			local bufnr = vim.api.nvim_get_current_buf()
-			local buf = vim.bo[bufnr]
+	-- breakpoint clearing
+	local cb = keybinds.clear_breakpoints or "<leader>cb"
+	vim.api.nvim_create_user_command("VimdowClearBreakpoints", function (o)
+		if vim.bo.filetype ~= "gdscript" then
+			return
+		end
+		local path = o.fargs[1] or vim.fn.bufname()
+		Vimdow.clear_breakpoints(path)
 
-			if buf.filetype ~= "gdscript" then
-				return
-			end
-			Vimdow.clear_breakpoints(vim.fn.bufname())
-		end, {
-			desc = "clear all godot breakpoints in this buffer",
-		})
+		local result = vim.fn.rpcrequest(1, "vimdow_clear_breakpoints", path)
+		if result ~= vim.NIL then
+			vim.print(result)
+		end
+	end, {
+		nargs = "?",
+	})
+	vim.keymap.set("n", cb, ":VimdowClearBreakpoints<CR>", {
+		desc = "clear all godot breakpoints in this buffer",
+	})
 
-		vim.api.nvim_create_user_command("VimdowClearBreakpoints", function (o)
-			Vimdow.clear_breakpoints(o.fargs[1])
-		end, {
-			nargs = "?",
-		})
-	end
+	-- setting breakpoints with the mouse
+	vim.keymap.set("n", "<MouseMove>", function (o)
+		local pos = vim.fn.getmousepos()
+		if vim.bo[vim.api.nvim_get_current_buf()].filetype ~= "gdscript" or pos.column >= 4 then
+			return
+		end
+	end, {})
 end
 
 -- plugin initilization

@@ -171,10 +171,11 @@ func _process(_delta: float) -> void:
 func _get_editor_interface():
 	return Engine.get_singleton("EditorInterface")
 
-func quit(_code: int):
+func quit(code: int):
 	if _is_standalone():
 		get_tree().quit()
 	else:
+		push_warning("Neovim quit with code: %d" % code)
 		_get_editor_interface().set_plugin_enabled("vimdow", false)
 
 
@@ -210,10 +211,16 @@ func open_file(path: String, line: int = -1):
 		var cmd = ("e +%d " % line if line > 0 else "e ") + path
 		client.request("nvim_command", [cmd])
 
-## Instructs the lua plugin to clear all breakpoints
+## Instructs the lua plugin to clear all breakpoints. Can optionally specify the buffer to clear
 func clear_breakpoints(path = ""):
 	assert(attached)
 	client.request("nvim_command", [ "VimdowClearBreakpoints " + path ])
+
+## Instructs the lua plugin to set the value of a breakpoint
+func set_breakpoint(path: String, line: int, enabled: bool):
+	assert(attached)
+	var command_str = "lua Vimdow.set_breakpoint(\"%s\", %d, %s)"% [path, line, enabled]
+	client.request("nvim_command", [ command_str ])
 
 #region REDRAW_EVENTS
 func flush():

@@ -19,10 +19,6 @@ config/features=PackedStringArray("4.7", "Forward Plus")
 window/size/viewport_width=1280
 window/size/viewport_height=720
 
-[editor_plugins]
-
-enabled=PackedStringArray("res://addons/vimdow/plugin.cfg")
-
 [physics]
 
 3d/physics_engine="Jolt Physics"
@@ -61,4 +57,3 @@ tasks=[{
 
 edit_file=""
 debug/ingore_hl=false
-path_to_nvim="/usr/bin/nvim"

@@ -29,8 +29,17 @@ func _breakpoint_set_in_tree(script: Script, line: int, enabled: bool) -> void:
 	var path = ProjectSettings.globalize_path(script.resource_path)
 	for sesh in get_sessions():
 		sesh.set_breakpoint(script.resource_path, line, enabled)
-	editor.clear_breakpoints(path)
-	breakpoints[path].clear()
+	editor.set_breakpoint(path, line + 1, enabled)
+
+func vimdow_clear_breakpoints(buf: String) -> Variant:
+	var script := load(ProjectSettings.localize_path(buf)) as Script
+	var bps = breakpoints.get(buf)
+	if not bps:
+		return ["Buffer has no breakpoints", null]
+	for line in bps:
+		if bps.get(line):
+			vimdow_set_breakpoint(buf, line, false)
+	return [null, null]
 
 func vimdow_set_breakpoint(buf: String, line: int, enabled: bool) -> Variant:
 	if breakpoints.has(buf):
