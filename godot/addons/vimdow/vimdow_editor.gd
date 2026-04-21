@@ -2,13 +2,6 @@
 class_name VimdowEditor
 extends MarginContainer
 
-enum Mode {
-	STANDALONE,
-	PLUGIN_MAIN_SCREEN,
-	PLUGIN_FLOATING,
-}
-var current_mode: Mode
-
 ## Neovim ui docs state that there is only ever one
 ## grid index passed to grid events, 1 the global grid
 # NOTE: an option in the future might be to have an "ext_multigrid" toggle that 
@@ -38,11 +31,11 @@ var _inputs_buffer: Array[InputEventKey] = []
 var _mouse_buffer: Array[InputEvent] = []
 var _redraw_events
 var _option_set
-var _path_to_nvim: String
 
 ## Configuration Handling ##
 const MAIN_SECTION = "neovim"
 const THEME_SECTION = "theme"
+var _conf_path: String
 var _conf: ConfigFile
 
 
@@ -69,7 +62,12 @@ func _init() -> void:
 func _ready() -> void:
 	_conf = ConfigFile.new()
 	if _is_standalone():
-		if _conf.load("user://vimdow.cfg") != OK:
+		_conf_path = (
+			OS.get_environment("VIMDOW_CONFIG_PATH") 
+			if OS.has_environment("VIMDOW_CONFIG_PATH") else
+			"user://vimdow.cfg"
+		)
+		if _conf.load(_conf_path) != OK:
 			_conf.set_value(MAIN_SECTION, "path_to_nvim", "/usr/bin/nvim")
 		call_deferred("start")
 	else:
@@ -94,6 +92,31 @@ func start() -> void:
 	if _is_standalone():
 		var r = get_tree().root
 		assert(r.size.x == size.x and r.size.y == size.y)
+		
+		# ConfigFile theme options
+		if _conf.has_section_key(THEME_SECTION, "font_size"):
+			var fs = _conf.get_value(THEME_SECTION, "font_size")
+			# theme.set("font_size", fs)
+			theme.set_font_size("font_size", "VimdowEditor", fs)
+
+		for font_property in ["bold", "italic", "normal"]:
+			if _conf.has_section_key(THEME_SECTION, font_property):
+				var path_from_conf = _conf.get_value(THEME_SECTION, font_property)
+				var path = _conf_path.get_base_dir().path_join(path_from_conf).simplify_path()
+
+				if not FileAccess.file_exists(path):
+					push_error("No font file '%s'" % path)
+					continue
+				var font_file := FontFile.new()
+				var bytes = FileAccess.get_file_as_bytes(path)
+				font_file.data = bytes
+
+				theme.set_font(
+					font_property,
+					"VimdowEditor",
+					font_file
+				)
+
 		lock_to_window(r)
 	else:
 		OS.set_environment("GODOT_LANGSERVER_PORT", str(_get_editor_interface()\

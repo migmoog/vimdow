@@ -82,3 +82,25 @@ Vimdow is also a neovim plugin. The code for it is located in `addons/vimdow/lua
 	},
 }
 ```
+
+## Standalone mode
+
+Vimdow as a standalone client looks for a godot ConfigFile on your system. It checks for an environment variable called
+`VIMDOW_CONFIG_PATH`, but by default it will search for `user://vimdow.cfg`.
+
+### Default config file
+
+```cfg
+[neovim]
+
+path_to_nvim="/usr/bin/nvim"
+
+[theme]
+font_size=16
+
+# Set these keys for font files. 
+# They can be relative to the path of the config file
+normal = ./path/to/normal.ttf
+bold = ../path/to/bold.ttf
+italic = /path/to/italic.ttf
+```

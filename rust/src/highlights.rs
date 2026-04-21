@@ -34,6 +34,16 @@ fn fv(font: &Gd<Font>) -> Gd<FontVariation> {
 #[godot_api]
 impl IControl for Highlighter {
     fn ready(&mut self) {
+        self.reload_fonts();
+
+        self.signals()
+            .theme_changed()
+            .connect_self(Self::reload_fonts);
+    }
+}
+
+impl Highlighter {
+    fn reload_fonts(&mut self) {
         self.normal_font = self
             .base()
             .get_theme_font_ex("normal")
@@ -135,7 +145,10 @@ impl Highlighter {
             Err(bg) => bg,
         };
 
-        if let Some(blend_pct) = attr.get("blend").map(|i| (100.0 - i.to::<i32>() as f32) / 100.0 ) {
+        if let Some(blend_pct) = attr
+            .get("blend")
+            .map(|i| (100.0 - i.to::<i32>() as f32) / 100.0)
+        {
             foreground.a = blend_pct;
             background.a = blend_pct;
             special.a = blend_pct;
