@@ -85,7 +85,7 @@ Vimdow is also a neovim plugin. The code for it is located in `addons/vimdow/lua
 
 ## Standalone mode
 
-Vimdow as a standalone client looks for a godot ConfigFile on your system. It checks for an environment variable called
+Vimdow as a standalone client looks for a godot [ConfigFile](https://docs.godotengine.org/en/stable/classes/class_configfile.html#configfile) on your system. It checks for an environment variable called
 `VIMDOW_CONFIG_PATH`, but by default it will search for `user://vimdow.cfg`.
 
 ### Default config file
