@@ -80,5 +80,3 @@ func _on_neovim_request(msgid: int, method: String, params: Array) -> void:
 		assert(err_and_result.size() == 2,
 			"rpc responses need a 2 element array of [error, result]")
 		editor.client.respond(msgid, err_and_result[0], err_and_result[1])
-	else:
-		editor.client.respond(msgid, "No method of name \"%s\" in the debugger" % method, null)

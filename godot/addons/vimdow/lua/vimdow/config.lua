@@ -3,7 +3,8 @@ return {
 	-- Default keybindings for vimdow actions
 	keybinds = {
 		-- toggle_breakpoint = "<leader>gb",
-		-- clear_breakpoints = "<leader>cb"
+		-- clear_breakpoints = "<leader>cb",
+		-- release_focus ="<C-Esc>"
 	},
 
 	-- default color themes

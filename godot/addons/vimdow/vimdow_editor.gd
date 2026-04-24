@@ -226,6 +226,11 @@ func _on_neovim_client_neovim_event(method: String, params: Array) -> void:
 				_redraw_batch.push_back(event)
 
 
+func _on_neovim_client_neovim_request(msgid: int, method: String, _params: Array) -> void:
+	if method.lstrip('"').rstrip('"') == "release_focus":
+		release_focus()
+		client.respond(msgid, null, null)
+
 func _grid_assert(grid: int):
 	assert(grid == grid_index, "Shouldn't receive an index for a different grid")
 

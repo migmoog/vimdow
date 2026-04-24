@@ -180,6 +180,15 @@ function Vimdow.setup (opts)
 
 		Vimdow.toggle_breakpoint(vim.fn.bufname(), pos.line)
 	end)
+
+	-- releasing focus from vimdow back to the editor
+	local rf = keybinds.release_focus or "<C-Esc>"
+	vim.keymap.set("n", rf, function ()
+		local result = vim.fn.rpcrequest(1, "release_focus")
+		if result ~= vim.NIL then
+			vim.print("Vimdow exited focus: " .. tostring(result))
+		end
+	end)
 end
 
 -- plugin initilization

@@ -69,7 +69,8 @@ Vimdow is also a neovim plugin. The code for it is located in `addons/vimdow/lua
 	-- Default keybindings for vimdow actions
 	keybinds = {
 		toggle_breakpoint = "<leader>gb",
-		clear_breakpoints = "<leader>cb"
+		clear_breakpoints = "<leader>cb",
+		release_focus = "<C-Esc>"
 	},
 
 	-- default color themes
