@@ -61,3 +61,4 @@ tasks=[{
 
 edit_file=""
 debug/ingore_hl=false
+debug/print_key_inputs=false

@@ -197,8 +197,11 @@ func quit(code: int):
 	if _is_standalone():
 		get_tree().quit()
 	else:
-		push_warning("Neovim quit with code: %d" % code)
-		_get_editor_interface().set_plugin_enabled("vimdow", false)
+		if code != 0:
+			push_warning("Neovim quit with code: %d" % code)
+		$VimdowWindow.visible = false
+		$ButtonContainer.visible = true
+		attached = false
 
 
 # checks if vimdow is the standalone app or the editor plugin
@@ -486,3 +489,10 @@ func _on_viewport_lock_size_changed():
 	if not (is_node_ready() or attached):
 		return
 	set_deferred("size", viewport_lock.size)
+
+
+func _on_restart_button_pressed() -> void:
+	$ButtonContainer.visible = false
+	$VimdowWindow.visible = true
+	call_deferred("start")
+

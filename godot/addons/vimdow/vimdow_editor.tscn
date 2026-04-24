@@ -45,6 +45,19 @@ layout_mode = 2
 [node name="NeovimClient" type="NeovimClient" parent="." unique_id=1734104499]
 editor_description = "Runs and communicates with the neovim process via godot's data types"
 
+[node name="ButtonContainer" type="MarginContainer" parent="." unique_id=284776577]
+visible = false
+layout_mode = 2
+theme_override_constants/margin_left = 300
+theme_override_constants/margin_top = 300
+theme_override_constants/margin_right = 300
+theme_override_constants/margin_bottom = 300
+
+[node name="RestartButton" type="Button" parent="ButtonContainer" unique_id=1899821518]
+layout_mode = 2
+text = "Restart Neovim"
+
 [connection signal="resized" from="VimdowWindow" to="." method="try_resize"]
 [connection signal="neovim_event" from="NeovimClient" to="." method="_on_neovim_client_neovim_event"]
 [connection signal="neovim_quit" from="NeovimClient" to="." method="quit"]
+[connection signal="pressed" from="ButtonContainer/RestartButton" to="." method="_on_restart_button_pressed"]
