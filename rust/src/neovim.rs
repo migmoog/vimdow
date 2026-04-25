@@ -2,10 +2,10 @@ use godot::classes::{InputEvent, InputEventKey, ProjectSettings};
 use godot::global::Key;
 use godot::prelude::*;
 use rmpv::Value;
-use std::collections::HashMap;
 mod ext_types;
 mod msgpack;
 
+use crate::neovim::key_events::NvimInput;
 use crate::neovim::mouse_events::NvimInputMouse;
 use crate::neovim::msgpack::rpc_array_to_vararray;
 use msgpack::rmpv_to_godot;
@@ -13,14 +13,8 @@ use msgpack::rmpv_to_godot;
 mod process;
 use process::NeovimProcess;
 
+mod key_events;
 mod mouse_events;
-
-fn is_special_symbol(kc: Key) -> bool {
-    matches!(
-        kc,
-        Key::BACKSPACE | Key::TAB | Key::ENTER | Key::SPACE | Key::ESCAPE
-    )
-}
 
 #[derive(GodotClass)]
 #[class(tool, base=Node, init)]
@@ -103,79 +97,12 @@ impl NeovimClient {
                 continue;
             }
 
-            let map = HashMap::from([
-                ('C', event.is_ctrl_pressed()),
-                ('A', event.is_alt_pressed()),
-                ('M', event.is_meta_pressed()),
-                ('S', event.is_shift_pressed()),
-            ]);
-
-            let only_shift = map
-                .iter()
-                .all(|(&c, &is_set)| if c == 'S' { is_set } else { !is_set });
-            let has_modifier = map.iter().any(|(_, &is_set)| is_set);
-            let regular_shifted_symbol = only_shift && !is_special_symbol(kc);
-            if !regular_shifted_symbol && has_modifier {
-                input.push('<');
-                for c in map
-                    .into_iter()
-                    .filter_map(|(c, is_set)| is_set.then_some(c))
-                {
-                    input.push(c);
-                    input.push('-');
-                }
-            }
-
-            let mut special_key = |pattern: &str| {
-                let f = format!("<{pattern}>");
-                input.push_str(if has_modifier { pattern } else { f.as_str() });
-            };
-
-            match kc {
-                Key::ENTER => special_key("CR"),
-                Key::BACKSPACE => special_key("BS"),
-                Key::TAB => special_key("Tab"),
-                Key::ESCAPE => special_key("Esc"),
-                Key::SPACE => special_key("Space"),
-                Key::DELETE => special_key("Del"),
-                Key::LEFT => special_key("Left"),
-                Key::RIGHT => special_key("Right"),
-                Key::UP => special_key("Up"),
-                Key::DOWN => special_key("Down"),
-                _ if Key::F1.ord() <= kc.ord() && kc.ord() <= Key::F12.ord() => {
-                    let fmt = format!("F{}", kc.ord() - Key::F1.ord() + 1);
-                    // input.push_str(&special_key(&fmt));
-                    special_key(&fmt);
-                }
-                _ => {
-                    if let Some(c) = char::from_u32(if event.is_ctrl_pressed() {
-                        kc.ord() as u32
-                    } else {
-                        event.get_unicode()
-                    }) {
-                        if c == '<' {
-                            input.push_str("<lt>");
-                        } else {
-                            input.push(c);
-                        }
-                    }
-                }
-            }
-
-            if !regular_shifted_symbol && has_modifier {
-                input.push('>');
-            }
-        }
-
-        let print_key_inputs = ProjectSettings::singleton()
-            .get_setting("vimdow/debug/print_key_inputs")
-            .try_to()
-            .unwrap_or(false);
-        if print_key_inputs {
-            godot_print!("{}", input);
+            let ni = NvimInput::from(event);
+            input.push_str(&ni.to_string());
         }
 
         np.var_request("nvim_input", varray![&input.to_godot()]);
+
         inputs_buffer.clear();
     }
 
