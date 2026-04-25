@@ -96,7 +96,6 @@ func start() -> void:
 		# ConfigFile theme options
 		if _conf.has_section_key(THEME_SECTION, "font_size"):
 			var fs = _conf.get_value(THEME_SECTION, "font_size")
-			# theme.set("font_size", fs)
 			theme.set_font_size("font_size", "VimdowEditor", fs)
 
 		for font_property in ["bold", "italic", "normal"]:
@@ -258,7 +257,7 @@ func clear_breakpoints(path = ""):
 ## Instructs the lua plugin to set the value of a breakpoint
 func set_breakpoint(path: String, line: int, enabled: bool):
 	assert(attached)
-	var command_str = "lua Vimdow.set_breakpoint(\"%s\", %d, %s)"% [path, line, enabled]
+	var command_str = "lua Vimdow.set_breakpoint(\"%s\", %d, %s, true)" % [path, line, enabled]
 	client.request("nvim_command", [ command_str ])
 
 #endregion

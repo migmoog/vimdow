@@ -32,7 +32,6 @@ func _breakpoint_set_in_tree(script: Script, line: int, enabled: bool) -> void:
 	editor.set_breakpoint(path, line + 1, enabled)
 
 func vimdow_clear_breakpoints(buf: String) -> Variant:
-	var script := load(ProjectSettings.localize_path(buf)) as Script
 	var bps = breakpoints.get(buf)
 	if not bps:
 		return ["Buffer has no breakpoints", null]

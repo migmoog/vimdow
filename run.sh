@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 nobuild=0
 userargs=()
 for ((i=1; i <= $#; i++)); do

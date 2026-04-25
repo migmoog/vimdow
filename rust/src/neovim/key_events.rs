@@ -6,7 +6,7 @@ use godot::{
 };
 
 bitflags! {
-    pub struct Modifiers: u32 {
+    pub struct Modifiers: u8 {
         const NONE = 0;
         const CTRL = 1;
         const ALT = 1 << 1;

@@ -18,7 +18,7 @@ function Vimdow.clear_breakpoints (buf)
 	end
 end
 
-function Vimdow.set_breakpoint (buf, line, val)
+function Vimdow.set_breakpoint (buf, line, val, external)
 	if not Vimdow.breakpoints[buf] then
 		Vimdow.breakpoints[buf] = {}
 	end
@@ -44,9 +44,11 @@ function Vimdow.set_breakpoint (buf, line, val)
 		Vimdow.breakpoints[buf][line] = nil
 	end
 
-	local result = vim.fn.rpcrequest(1, "vimdow_set_breakpoint", buf, line, val)
-	if result ~= vim.NIL then
-		vim.print(result)
+	if not external then
+		local result = vim.fn.rpcrequest(1, "vimdow_set_breakpoint", buf, line, val)
+		if result ~= vim.NIL then
+			vim.print(result)
+		end
 	end
 end
 
@@ -152,7 +154,7 @@ function Vimdow.setup (opts)
 		end
 
 		local b = Vimdow.bpmouse
-		local function remove_hover()
+		local function remove_hover ()
 			if b.line > -1 then
 				vim.fn.sign_unplace "hover"
 			end
