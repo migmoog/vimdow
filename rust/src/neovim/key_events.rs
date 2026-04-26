@@ -52,7 +52,12 @@ impl ToString for NvimInput {
                 }
             }
             NvimKeycode::Keycode(k) => {
-                format!(":lua vim.print(\"{}\")<CR>", k.as_str())
+                let k = k.as_str();
+                if self.mods.is_empty() {
+                    format!(":lua vim.print(\"couldn't represent keycode: {}\")<CR>", k)
+                } else {
+                    self.apply_modifiers(k)
+                }
             }
             NvimKeycode::Named(n) => self.apply_modifiers(n),
             NvimKeycode::Function(ref f) => self.apply_modifiers(f),
@@ -63,6 +68,22 @@ impl ToString for NvimInput {
 impl From<Gd<InputEventKey>> for NvimInput {
     fn from(value: Gd<InputEventKey>) -> Self {
         let kc = value.get_keycode();
+        let mut mods = Modifiers::NONE;
+        if value.is_ctrl_pressed() {
+            mods.insert(Modifiers::CTRL);
+        }
+
+        if value.is_alt_pressed() {
+            mods.insert(Modifiers::ALT);
+        }
+
+        if value.is_meta_pressed() {
+            mods.insert(Modifiers::META);
+        }
+
+        if value.is_shift_pressed() {
+            mods.insert(Modifiers::SHIFT);
+        }
         let nk = match kc {
             Key::ENTER => NvimKeycode::Named("CR"),
             Key::BACKSPACE => NvimKeycode::Named("BS"),
@@ -80,7 +101,7 @@ impl From<Gd<InputEventKey>> for NvimInput {
             _ => {
                 let uc = value.get_unicode();
                 if uc != 0
-                    && let Some(c) = char::from_u32(uc).filter(|c| !c.is_control())
+                    && let Some(c) = char::from_u32(uc)
                 {
                     if c == '<' {
                         NvimKeycode::Named("lt")
@@ -92,23 +113,6 @@ impl From<Gd<InputEventKey>> for NvimInput {
                 }
             }
         };
-
-        let mut mods = Modifiers::NONE;
-        if value.is_ctrl_pressed() {
-            mods.insert(Modifiers::CTRL);
-        }
-
-        if value.is_alt_pressed() {
-            mods.insert(Modifiers::ALT);
-        }
-
-        if value.is_meta_pressed() {
-            mods.insert(Modifiers::META);
-        }
-
-        if value.is_shift_pressed() {
-            mods.insert(Modifiers::SHIFT);
-        }
 
         Self { mods, nk }
     }
