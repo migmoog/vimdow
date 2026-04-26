@@ -10,6 +10,14 @@ func setup(e: VimdowEditor):
 	editor = e
 	editor.client.neovim_request.connect(_on_neovim_request)
 
+func _set_bp_data(buf: String, line: int, enabled: bool):
+	if breakpoints.has(buf):
+		breakpoints[buf][line] = enabled
+	else:
+		breakpoints[buf] = {
+			line : enabled
+		}
+
 func set_sesh_breakpoint(sesh: EditorDebuggerSession, buffer_name: String, line: int, enabled: bool):
 	sesh.set_breakpoint(ProjectSettings.localize_path(buffer_name), line, enabled)
 
@@ -29,6 +37,7 @@ func _breakpoint_set_in_tree(script: Script, line: int, enabled: bool) -> void:
 	var path = ProjectSettings.globalize_path(script.resource_path)
 	for sesh in get_sessions():
 		sesh.set_breakpoint(script.resource_path, line, enabled)
+	_set_bp_data(path, line + 1, enabled)
 	editor.set_breakpoint(path, line + 1, enabled)
 
 func vimdow_clear_breakpoints(buf: String) -> Variant:
@@ -41,12 +50,7 @@ func vimdow_clear_breakpoints(buf: String) -> Variant:
 	return [null, null]
 
 func vimdow_set_breakpoint(buf: String, line: int, enabled: bool) -> Variant:
-	if breakpoints.has(buf):
-		breakpoints[buf][line] = enabled
-	else:
-		breakpoints[buf] = {
-			line: enabled
-		}
+	_set_bp_data(buf, line, enabled)
 	for sesh in get_sessions():
 		set_sesh_breakpoint(sesh, buf, line, enabled)
 	return [null, null]

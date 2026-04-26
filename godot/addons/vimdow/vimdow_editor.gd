@@ -499,4 +499,3 @@ func _on_restart_button_pressed() -> void:
 	$ButtonContainer.visible = false
 	$VimdowWindow.visible = true
 	call_deferred("start")
-
