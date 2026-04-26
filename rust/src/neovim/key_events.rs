@@ -79,15 +79,13 @@ impl From<Gd<InputEventKey>> for NvimInput {
             }
             _ => {
                 let uc = value.get_unicode();
-                if uc != 0 {
-                    if let Some(c) = char::from_u32(uc).filter(|c| !c.is_control()) {
-                        if c == '<' {
-                            NvimKeycode::Named("lt")
-                        } else {
-                            NvimKeycode::Printable(c)
-                        }
+                if uc != 0
+                    && let Some(c) = char::from_u32(uc).filter(|c| !c.is_control())
+                {
+                    if c == '<' {
+                        NvimKeycode::Named("lt")
                     } else {
-                        NvimKeycode::Keycode(kc)
+                        NvimKeycode::Printable(c)
                     }
                 } else {
                     NvimKeycode::Keycode(kc)
