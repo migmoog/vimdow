@@ -1,4 +1,4 @@
-use godot::classes::{InputEvent, InputEventKey, ProjectSettings};
+use godot::classes::{InputEvent, InputEventKey};
 use godot::global::Key;
 use godot::prelude::*;
 use rmpv::Value;
