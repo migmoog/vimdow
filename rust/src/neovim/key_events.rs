@@ -1,4 +1,4 @@
-use bitflags::bitflags;
+use bitflags::{bitflags, bitflags_match};
 use godot::{
     classes::InputEventKey,
     global::Key,
@@ -6,6 +6,7 @@ use godot::{
 };
 
 bitflags! {
+    #[derive(PartialEq)]
     pub struct Modifiers: u8 {
         const NONE = 0;
         const CTRL = 1;
@@ -45,7 +46,7 @@ impl ToString for NvimInput {
         match self.nk {
             NvimKeycode::Printable(c) => {
                 let c = c.to_string();
-                if self.mods.is_empty() {
+                if self.mods.is_empty() || self.mods == Modifiers::SHIFT {
                     c
                 } else {
                     self.apply_modifiers(&c)

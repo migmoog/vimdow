@@ -1,4 +1,6 @@
-# made for the sake of minimizing the amount of buttons one has to click
+# This script is mainly for restarting changes to stuff in the Godot part of the plugin
+# changes to the rust section crashes the editor on reload.
+
 @tool
 extends EditorScript
 

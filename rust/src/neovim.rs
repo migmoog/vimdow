@@ -1,4 +1,4 @@
-use godot::classes::{InputEvent, InputEventKey};
+use godot::classes::{InputEvent, InputEventKey, ProjectSettings};
 use godot::global::Key;
 use godot::prelude::*;
 use rmpv::Value;
@@ -101,6 +101,12 @@ impl NeovimClient {
             input.push_str(&ni.to_string());
         }
 
+        if ProjectSettings::singleton().get_setting_ex("vimdow/debug/log_keys")
+            .default_value(&false.to_variant())
+            .done()
+            .to::<bool>() {
+            godot_print!("{}", input);
+        }
         np.var_request("nvim_input", varray![&input.to_godot()]);
 
         inputs_buffer.clear();
