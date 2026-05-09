@@ -24,3 +24,6 @@ Session.vim
 godot/addons/vimdow/bin
 
 __pycache__
+
+# build files for exporting plugin or standalone
+build/

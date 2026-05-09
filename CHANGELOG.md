@@ -8,6 +8,7 @@
 
 ### Added
 
+- Added pyinvoke build system 
 - :q disables the plugin [\#17](https://github.com/migmoog/vimdow/issues/17)
 
 ### Fixed

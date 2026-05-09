@@ -1,7 +1,8 @@
 import shutil
+import shutil
 from enum import StrEnum
 from invoke.exceptions import PlatformError
-from invoke import task
+from invoke import task, call
 import platform
 import os
 from shutil import copy
@@ -40,6 +41,7 @@ def clean(c):
     print("Cleaning cargo build")
     c.run(cargo_cmd("clean"))
     shutil.rmtree("godot/addons/vimdow/bin")
+    shutil.rmtree("build/")
 
 @task(
     help = {
@@ -54,9 +56,10 @@ def build(c, profile: BuildProfile = None, clean=False):
 
     if not os.path.exists("godot/addons/vimdow/bin"):
         os.mkdir("godot/addons/vimdow/bin")
+    if not os.path.exists("build/"):
+        os.mkdir("build/")
 
-    if not profile:
-        profile = BuildProfile.DEBUG
+    profile = profile or BuildProfile.DEBUG
     profiles: dict = {}
     match profile:
         case BuildProfile.DEBUG:
@@ -103,3 +106,11 @@ def editor(c, nobuild=False, profile: BuildProfile = BuildProfile.DEBUG, clean=F
         build(c, profile, clean)
     c.run(gd_cmd())
 
+
+@task(
+    pre = [call(build, profile=BuildProfile.BOTH)],
+    aliases = ["ep"]
+)
+def export_plugin(c):
+    print("Zipping plugin to build/")
+    shutil.make_archive("build/vimdow-plugin", "zip", root_dir="godot/addons")
