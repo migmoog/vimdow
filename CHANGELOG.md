@@ -2,6 +2,9 @@
 
 ## [Unreleased](https://github.com/migmoog/vimdow/tree/HEAD)
 
+### Fixes
+- Windows creation flags [eb67326](https://github.com/migmoog/vimdow/commit/eb6732615388016554ae19b0753e07ee57c8991d)
+- Shifted characters are preserved as printable character inputs [e752390](https://github.com/migmoog/vimdow/commit/e752390fce64052cca3ada4046d75326938e9b71)
 
 ### Added
 
