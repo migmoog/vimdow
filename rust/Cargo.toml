@@ -26,5 +26,5 @@ unicode-segmentation = "1.13.2"
 pre-release-replacements =  [
  # bumping plugin config info
  {file="../godot/addons/vimdow/plugin.cfg", search="^\\s*version=.*$", replace="version=\"{{version}}\""},
- {file="../pyproject.toml", search="^\\s*version=.*$", replace="version = \"{{version}}\""}
+ {file="../pyproject.toml", search="^\\s*version\\s*=\\s*.*$", replace="version = \"{{version}}\""}
 ]
