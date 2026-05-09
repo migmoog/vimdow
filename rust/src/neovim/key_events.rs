@@ -1,4 +1,4 @@
-use bitflags::{bitflags, bitflags_match};
+use bitflags::bitflags;
 use godot::{
     classes::InputEventKey,
     global::Key,

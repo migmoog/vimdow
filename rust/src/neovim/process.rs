@@ -7,6 +7,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, mpsc};
 use std::thread::{self, JoinHandle};
 
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+
 use rmpv::Value;
 
 use crate::err::VimdowError;
@@ -35,6 +38,12 @@ impl NeovimProcess {
     pub fn new(program: &str, nvim_args: &[impl AsRef<OsStr>]) -> Result<Self, VimdowError> {
         let mut child_builder = Command::new(program);
         child_builder.stdin(Stdio::piped()).stdout(Stdio::piped());
+
+        #[cfg(target_os = "windows")] {
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            child_builder.creation_flags(CREATE_NO_WINDOW);
+        }
+
         for arg in nvim_args {
             child_builder.arg(arg);
         }

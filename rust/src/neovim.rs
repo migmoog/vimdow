@@ -178,8 +178,6 @@ impl INode for NeovimClient {
                     if let [
                         Value::Integer(msgid),
                         Value::String(method),
-                        // Value::Array(params),
-                        // method,
                         params,
                     ] = &rpc[1..4]
                     {
