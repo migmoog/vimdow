@@ -59,7 +59,5 @@ tasks=[{
 
 [vimdow]
 
-path_to_nvim="/usr/local/bin/nvim"
-edit_file=""
 debug/ingore_hl=false
 debug/log_keys=false
