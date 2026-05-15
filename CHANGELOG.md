@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased](https://github.com/migmoog/vimdow/tree/HEAD)
+## [vimdow-v0.3.5](https://github.com/migmoog/vimdow/tree/vimdow-v0.3.5) - 2026-05-09
 
 ### Fixes
 - Windows creation flags [eb67326](https://github.com/migmoog/vimdow/commit/eb6732615388016554ae19b0753e07ee57c8991d)
