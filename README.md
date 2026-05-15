@@ -99,8 +99,8 @@ path_to_nvim="/usr/bin/nvim"
 [theme]
 font_size=16
 
-# Set these keys for font files. 
-# They can be relative to the path of the config file
+; Set these keys for font files. 
+; They can be relative to the path of the config file
 normal = "./path/to/normal.ttf"
 bold = "../path/to/bold.ttf"
 italic = "/path/to/italic.ttf"
