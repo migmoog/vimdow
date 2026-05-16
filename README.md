@@ -51,11 +51,14 @@ that your on linux and set the path to `/usr/bin/nvim`
 
 #### Path to neovim
 
-To tell the plugin where Neovim is, check your [ Project Settings ](https://docs.godotengine.org/en/stable/tutorials/editor/project_settings.html) and paste the path to the binary in `"vimdow/path_to_nvim"`
+In `addons/vimdow`, there is a default file called `local.cfg`. It will have default settings. To start vimdow, you need to set the `path_to_nvim` key in the `[neovim]` section. You should also remove the `template=true` to remove the warning.
+
+It is reccomended that you add `local.cfg` to the `.gitignore` of your project. It is meant to be your way to configure vimdow for your system only as a way for collaborating groups on the same project with their own preferences.
 
 #### Theme
 
-Edit `addons/vimdow/vimdow_theme.tres` in the editor to do things like change fonts and default font size.
+There are two options. First are the settings in the `[theme]` section of `local.cfg` (Read the config file section in **Standalone mode**). Your other option is to 
+edit `addons/vimdow/vimdow_theme.tres` in the editor to do things like change fonts and default font size. However, this approach isn't reccomended as it will make your changes committed to the entire respository.
 
 #### Shortcuts
 
