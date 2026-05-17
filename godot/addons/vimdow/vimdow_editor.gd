@@ -133,8 +133,6 @@ func start() -> void:
 			),
 		)
 
-		OS.set_environment("GODOT_VERSION", Engine.get_version_info().string)
-
 	var args := PackedStringArray(["--embed"])
 	if not _is_standalone():
 		args.append_array(
@@ -538,10 +536,12 @@ func unlock_from_window():
 	viewport_lock.size_changed.disconnect(_on_viewport_lock_size_changed)
 	viewport_lock = null
 
+
 func show_error(text: String) -> void:
 	$VimdowWindow.visible = false
 	$NoNeovimRunning.visible = true
 	%ErrorText.text = text
+
 
 func _on_viewport_lock_size_changed():
 	assert(viewport_lock != null)
@@ -553,7 +553,7 @@ func _on_viewport_lock_size_changed():
 func _on_restart_button_pressed() -> void:
 	$NoNeovimRunning.visible = false
 	$VimdowWindow.visible = true
-	
+
 	#reload config
 	var result = conf.load(conf_path)
 	if result == OK:

@@ -127,7 +127,7 @@ def export_plugin(c):
 
 @task(
     aliases = ["es"],
-    help ={
+    help = {
      "profile" : "The profile of the library to build. Default is \"debug\""
     }
 )

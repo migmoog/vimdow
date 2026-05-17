@@ -93,7 +93,10 @@ impl NeovimClient {
         for event in inputs_buffer.iter_shared() {
             let kc = event.get_keycode();
             // ignore modifier key events, should be lumped in with other inputs
-            if matches!(kc, Key::CTRL | Key::META | Key::SHIFT | Key::ALT) {
+            if matches!(
+                kc,
+                Key::CTRL | Key::META | Key::SHIFT | Key::ALT | Key::CAPSLOCK
+            ) {
                 continue;
             }
 
@@ -101,10 +104,12 @@ impl NeovimClient {
             input.push_str(&ni.to_string());
         }
 
-        if ProjectSettings::singleton().get_setting_ex("vimdow/debug/log_keys")
+        if ProjectSettings::singleton()
+            .get_setting_ex("vimdow/debug/log_keys")
             .default_value(&false.to_variant())
             .done()
-            .to::<bool>() {
+            .to::<bool>()
+        {
             godot_print!("{}", input);
         }
         np.var_request("nvim_input", varray![&input.to_godot()]);
@@ -175,12 +180,7 @@ impl INode for NeovimClient {
                     }
                 }
                 0 => {
-                    if let [
-                        Value::Integer(msgid),
-                        Value::String(method),
-                        params,
-                    ] = &rpc[1..4]
-                    {
+                    if let [Value::Integer(msgid), Value::String(method), params] = &rpc[1..4] {
                         self.signals().neovim_request().emit(
                             msgid.as_i64().unwrap() as i32,
                             method.to_string(),

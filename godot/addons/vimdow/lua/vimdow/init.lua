@@ -85,8 +85,6 @@ function Vimdow.setup (opts)
 	})
 	vim.lsp.enable "gdscript"
 
-	local gd_version = opts.gd_version or env "GODOT_VERSION"
-
 	local colors = opts.colors or {}
 	Vimdow.hover_breakpoint_hl = "VimdowHoverBreakpoint"
 	vim.api.nvim_set_hl(0, Vimdow.hover_breakpoint_hl, { fg = colors.breakpoint_hover or "#ffabb2" })
