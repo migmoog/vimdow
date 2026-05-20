@@ -1,5 +1,7 @@
 # Changelog
 
+## Unreleased
+
 ## [vimdow-v0.3.5](https://github.com/migmoog/vimdow/tree/vimdow-v0.3.5) - 2026-05-09
 
 ### Fixes

@@ -12,7 +12,7 @@ if not GDPATH:
     GDPATH = "godot"
 
 def gd_cmd(*args) -> str:
-    return f"{GDPATH} {" ".join(args)} --path godot/"
+    return f"\"{GDPATH}\" {" ".join(args)} --path godot/"
 
 class BuildProfile(StrEnum):
     BOTH = "both"
