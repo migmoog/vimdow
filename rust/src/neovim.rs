@@ -16,6 +16,9 @@ use process::NeovimProcess;
 mod key_events;
 mod mouse_events;
 
+/// Node that's responsible for communicating with the embedded neovim process.
+/// will check for events in idle process time and emit them via signals,
+/// and can utilize neovim RPC via `NeovimClient.request`
 #[derive(GodotClass)]
 #[class(tool, base=Node, init)]
 pub struct NeovimClient {
@@ -25,15 +28,21 @@ pub struct NeovimClient {
 
 #[godot_api]
 impl NeovimClient {
+
+    /// Emits on an RPC notification from neovim (msgtype 2)
     #[signal]
     fn neovim_event(method: String, params: VarArray);
 
+    /// Emits on an RPC response from neovim (msgtype 1)
     #[signal]
     fn neovim_response(msgid: i32, error: Variant, result: Variant);
 
+    /// Emits on an RPC request from neovim (msgtype 0)
     #[signal]
     fn neovim_request(msgid: i32, method: String, params: VarArray);
 
+    /// Emits if the embedded neovim process quits unexpectedly, with the appropriate error 
+    /// code.
     #[signal]
     fn neovim_quit(status: i32);
 
@@ -45,6 +54,13 @@ impl NeovimClient {
         self.nvim_process = None;
     }
 
+    /// Spawns a neovim process with the specified binary path
+    ///
+    /// # Examples
+    /// ```gdscript,ignore
+    /// # spawns the embedded process vimdow needs to work
+    /// client.spawn("/usr/bin/nvim", PackedStringArray(["--embed"]))
+    /// ```
     #[func]
     fn spawn(&mut self, program: String, args: PackedStringArray) -> bool {
         let args: Vec<_> = args.to_vec().into_iter().map(|g| g.to_string()).collect();
@@ -60,6 +76,14 @@ impl NeovimClient {
         }
     }
 
+    /// Sends an RPC request to the neovim process. Returns the message id of the request
+    /// for validation.
+    ///
+    /// # Examples
+    /// ```gdscript,ignore
+    /// # Tells neovim to print hello world to its own console
+    /// client.request("nvim_input", ":echo \"hello world!\"<CR>")
+    /// ```
     #[func]
     fn request(&mut self, method: String, params: VarArray) -> i32 {
         let Some(np) = self.nvim_process.as_mut() else {
@@ -68,6 +92,29 @@ impl NeovimClient {
         np.var_request(&method, params)
     }
 
+    /// Sends an RPC response to the neovim process. Will fail if there was no request
+    /// made with the provided `msgid`. `error` should be provided a value on failure,
+    /// `result` should be provided a value on success.
+    ///
+    /// # Examples
+    /// ```gdscript,ignore
+    /// # Responds to a request with msgid=1 and tell that it failed
+    /// client.respond(
+    ///     1,
+    ///     "This string would signify a failure",
+    ///     null
+    /// )
+    ///
+    /// # Responds to a request with msgid=2 and tell that it succeeded
+    /// client.respond(
+    ///     2,
+    ///     null,
+    ///     """
+    ///     This would be the expected returned value of the rpc call.
+    ///     It could also be null if the RPC request isn't expecting a value.
+    ///     """
+    /// )
+    /// ```
     #[func]
     fn respond(&mut self, msgid: i32, error: Variant, result: Variant) {
         let Some(np) = self.nvim_process.as_mut() else {
@@ -76,6 +123,9 @@ impl NeovimClient {
         np.var_respond(msgid, error, result);
     }
 
+    /// Returns true if the neovim process is still active. 
+    /// Otherwise it returns false if the process hasn't started
+    /// or if it died.
     #[func]
     fn is_running(&mut self) -> bool {
         match &mut self.nvim_process {
@@ -84,6 +134,8 @@ impl NeovimClient {
         }
     }
 
+    /// Reads a buffer of InputEventKeys and translates them to neovim inputs.
+    /// Will clear the provided buffer.
     #[func]
     fn flush_key_inputs(&mut self, mut inputs_buffer: Array<Gd<InputEventKey>>) {
         let Some(np) = self.nvim_process.as_mut() else {
@@ -117,6 +169,8 @@ impl NeovimClient {
         inputs_buffer.clear();
     }
 
+    /// Reads a buffer of InputEvents. If the events are castable
+    /// to mouse events, it will translate them to neovim inputs.
     #[func]
     fn flush_mouse_inputs(
         &mut self,
@@ -146,7 +200,7 @@ impl INode for NeovimClient {
         };
 
         if let Ok(Some(e)) = np.try_wait() {
-            self.signals().neovim_quit().emit(e.code().unwrap_or(-1));
+           self.signals().neovim_quit().emit(e.code().unwrap_or(-1));
             return;
         }
 
