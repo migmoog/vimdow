@@ -46,6 +46,7 @@ impl NeovimClient {
     #[signal]
     fn neovim_quit(status: i32);
 
+    /// Kills the neovim process. Will push a warning once it does.
     #[func]
     fn kill_process(&mut self) {
         if self.nvim_process.is_some() {
@@ -57,7 +58,7 @@ impl NeovimClient {
     /// Spawns a neovim process with the specified binary path
     ///
     /// # Examples
-    /// ```gdscript,ignore
+    /// ```
     /// # spawns the embedded process vimdow needs to work
     /// client.spawn("/usr/bin/nvim", PackedStringArray(["--embed"]))
     /// ```
@@ -80,7 +81,7 @@ impl NeovimClient {
     /// for validation.
     ///
     /// # Examples
-    /// ```gdscript,ignore
+    /// ```
     /// # Tells neovim to print hello world to its own console
     /// client.request("nvim_input", ":echo \"hello world!\"<CR>")
     /// ```
@@ -97,7 +98,7 @@ impl NeovimClient {
     /// `result` should be provided a value on success.
     ///
     /// # Examples
-    /// ```gdscript,ignore
+    /// ```
     /// # Responds to a request with msgid=1 and tell that it failed
     /// client.respond(
     ///     1,
