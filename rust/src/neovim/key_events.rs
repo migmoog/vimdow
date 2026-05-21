@@ -2,11 +2,11 @@ use bitflags::bitflags;
 use godot::{
     classes::InputEventKey,
     global::Key,
-    obj::{EngineEnum, Gd},
+    obj::{EngineEnum, Gd, Singleton},
 };
 
 bitflags! {
-    #[derive(PartialEq)]
+    #[derive(Debug, PartialEq)]
     pub struct Modifiers: u8 {
         const NONE = 0;
         const CTRL = 1;
@@ -16,6 +16,7 @@ bitflags! {
     }
 }
 
+#[derive(Debug)]
 enum NvimKeycode {
     Named(&'static str),
     Function(String),
@@ -23,6 +24,7 @@ enum NvimKeycode {
     Keycode(Key),
 }
 
+#[derive(Debug)]
 pub struct NvimInput {
     mods: Modifiers,
     nk: NvimKeycode,
@@ -43,6 +45,13 @@ impl NvimInput {
 
 impl ToString for NvimInput {
     fn to_string(&self) -> String {
+        if godot::classes::ProjectSettings::singleton()
+            .get_setting("vimdow/debug/log_keys")
+            .try_to::<bool>()
+            .unwrap_or(false)
+        {
+            godot::global::godot_print!("Translated input: {:?}, Mods: {:?}", self.nk, self.mods);
+        }
         match self.nk {
             NvimKeycode::Printable(c) => {
                 let c = c.to_string();
@@ -53,12 +62,18 @@ impl ToString for NvimInput {
                 }
             }
             NvimKeycode::Keycode(k) => {
-                let k = k.as_str();
+                let mut k = k.as_str().to_string();
                 if self.mods.is_empty() {
-                    format!(":lua vim.print(\"couldn't represent keycode: {}\")<CR>", k)
-                } else {
-                    self.apply_modifiers(k)
+                    return String::new();
                 }
+
+                // keycodes default to caps for labels. 
+                // doing this to preserve cases because neovim differentiates between Alt events
+                // with case-sensitive characters.
+                if !self.mods.contains(Modifiers::SHIFT) {
+                    k = k.to_lowercase();
+                }
+                self.apply_modifiers(&k)
             }
             NvimKeycode::Named(n) => self.apply_modifiers(n),
             NvimKeycode::Function(ref f) => self.apply_modifiers(f),
