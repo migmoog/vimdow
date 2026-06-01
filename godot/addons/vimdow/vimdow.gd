@@ -112,7 +112,15 @@ func _on_main_screen_changed(screen_name: String):
 
 
 func _handles(object: Object) -> bool:
-	return object is Script
+	return [
+		&"Script",
+		&"TextFile",
+		&"GDExtension",
+		&"JSON",
+	].any(
+		func(c):
+			return ClassDB.is_parent_class(object.get_class(), c)
+	)
 
 
 func _edit(object: Object):
