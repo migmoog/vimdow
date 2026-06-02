@@ -1,73 +1,4 @@
-_G.Vimdow = {
-	-- breakpoints managed by the godot editor
-	breakpoints = {},
-}
-
-local BREAKPOINTS_GROUP = "vimdow_breakpoints"
-
-function Vimdow.clear_breakpoints (buf)
-	if buf then
-		vim.fn.sign_unplace(BREAKPOINTS_GROUP, {
-			buffer = buf,
-		})
-		Vimdow.breakpoints[buf] = {}
-	else
-		vim.fn.sign_unplace(BREAKPOINTS_GROUP)
-		Vimdow.breakpoints = {}
-	end
-end
-
-function Vimdow.set_breakpoint (buf, line, val, external)
-	if not Vimdow.breakpoints[buf] then
-		Vimdow.breakpoints[buf] = {}
-	end
-
-	if val then
-		if Vimdow.breakpoints[buf][line] then
-			return
-		end
-
-		Vimdow.breakpoints[buf][line] = vim.fn.sign_place(0, BREAKPOINTS_GROUP, "GodotBreakpoint", buf, {
-			lnum = line,
-			priority = 43,
-		})
-	else
-		if not Vimdow.breakpoints[buf][line] then
-			return
-		end
-
-		vim.fn.sign_unplace(BREAKPOINTS_GROUP, {
-			buffer = buf,
-			id = Vimdow.breakpoints[buf][line],
-		})
-		Vimdow.breakpoints[buf][line] = nil
-	end
-
-	if not external then
-		local result = vim.fn.rpcrequest(1, "vimdow_set_breakpoint", buf, line, val)
-		if result ~= vim.NIL then
-			vim.print(result)
-		end
-	end
-end
-
-function Vimdow.get_breakpoint (buf, line)
-	local bps = Vimdow.breakpoints[buf]
-	if not bps then
-		return false
-	elseif bps then
-		for k, _ in pairs(bps) do
-			if k == line then
-				return true
-			end
-		end
-		return false
-	end
-end
-
-function Vimdow.toggle_breakpoint (buf, line)
-	Vimdow.set_breakpoint(buf, line, not Vimdow.get_breakpoint(buf, line))
-end
+_G.Vimdow = {}
 
 function Vimdow.setup (opts)
 	local root_dir = opts.root_dir or vim.fs.root(0, { "project.godot" })
@@ -93,6 +24,12 @@ function Vimdow.setup (opts)
 		text = "",
 		texthl = Vimdow.hover_breakpoint_hl,
 	})
+
+	local debugger = require "vimdow.debugger"
+	Vimdow.get_breakpoint = debugger.get_breakpoint
+	Vimdow.set_breakpoint = debugger.set_breakpoint
+	Vimdow.toggle_breakpoint = debugger.toggle_breakpoint
+	Vimdow.clear_breakpoints = debugger.clear_breakpoints
 
 	-- breakpoint toggling
 	local keybinds = opts.keybinds or {}
@@ -181,6 +118,10 @@ function Vimdow.setup (opts)
 			vim.print("Vimdow exited focus: " .. tostring(result))
 		end
 	end)
+
+
+	-- editor interface integration
+	Vimdow.ei = require "vimdow.editor"
 end
 
 return Vimdow

@@ -17,7 +17,6 @@ var hl_groups := { }
 var options := { }
 var cwd: String
 
-@export_file_path() var startup_script: String
 @onready var client: NeovimClient = $NeovimClient
 @onready var w = $VimdowWindow
 
@@ -86,7 +85,7 @@ func _exit_tree() -> void:
 		es.remove_shortcut("vimdow/decrease_font_size")
 
 
-func start() -> void:
+func start(extra_nvim_args := PackedStringArray()) -> void:
 	if conf.get_value(MAIN_SECTION, "template", false):
 		show_error("Your config file has \"template=true\" in the neovim section. Remove that value to actually use your config in %s" % conf_path)
 		return
@@ -134,20 +133,13 @@ func start() -> void:
 		)
 
 	var args := PackedStringArray(["--embed"])
-	if not _is_standalone():
-		args.append_array(
-			[
-				"-S",
-				ProjectSettings.globalize_path(startup_script),
-			],
-		)
+	args.append_array(extra_nvim_args)
 	args.append_array(OS.get_cmdline_user_args())
 
 	client.spawn(conf.get_value(MAIN_SECTION, "path_to_nvim"), args)
 	await get_tree().create_timer(.1).timeout
 	assert(client.is_running())
 	var initial_size := get_editor_grid_size(w.size)
-	# attached = client.attach(initial_size.x, initial_size.y)
 	client.request(
 		"nvim_ui_attach",
 		[

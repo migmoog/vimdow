@@ -30,7 +30,8 @@ func _enter_tree() -> void:
 	editor = EDITOR.instantiate()
 	editor.conf_path = "res://addons/vimdow/local.cfg"
 	EditorInterface.get_editor_main_screen().add_child(editor)
-	editor.call_deferred("start")
+	editor.client.neovim_request.connect(_on_neovim_request)
+	editor.call_deferred("start", PackedStringArray(["-S", "addons/vimdow/lua/start.lua"]))
 
 	window_wrapper = Window.new()
 	add_child(window_wrapper)
@@ -66,6 +67,26 @@ func _enter_tree() -> void:
 	debugger = VimdowDebugger.new()
 	debugger.setup(editor)
 	add_debugger_plugin(debugger)
+
+
+func _on_neovim_request(msgid: int, method: String, params: Array):
+	var m := method.lstrip('"').rstrip('"')
+	if m.begins_with("EditorInterface:"):
+		var ei_method = m.trim_prefix("EditorInterface:")
+		if EditorInterface.has_method(ei_method):
+			editor.client.respond(
+				msgid,
+				null,
+				{
+					return_value = EditorInterface.callv(ei_method, params),
+				},
+			)
+		else:
+			editor.client.respond(
+				msgid,
+				"EditorInterface does not have a method called: %s",
+				null,
+			)
 
 
 func _exit_tree() -> void:
