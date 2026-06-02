@@ -2,7 +2,6 @@ _G.Vimdow = {
 	-- breakpoints managed by the godot editor
 	breakpoints = {},
 }
-local env = os.getenv
 
 local BREAKPOINTS_GROUP = "vimdow_breakpoints"
 
@@ -77,13 +76,6 @@ function Vimdow.setup (opts)
 	end
 	local v = Vimdow
 	v.root_dir = root_dir
-
-	-- Automatically connect to the language server
-	local langserver_port = env "GODOT_LANGSERVER_PORT"
-	vim.lsp.config("gdscript", {
-		cmd = vim.lsp.rpc.connect("127.0.0.1", tonumber(langserver_port)),
-	})
-	vim.lsp.enable "gdscript"
 
 	local colors = opts.colors or {}
 	Vimdow.hover_breakpoint_hl = "VimdowHoverBreakpoint"
@@ -191,6 +183,4 @@ function Vimdow.setup (opts)
 	end)
 end
 
--- plugin initilization
-local user_config = dofile "addons/vimdow/lua/vimdow/config.lua"
-Vimdow.setup(user_config)
+return Vimdow

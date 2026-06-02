@@ -1,5 +1,8 @@
--- Base config file for using vimdow
-return {
+-- this adds the lua plugin to your neovim session
+vim.opt.rtp:prepend(vim.fs.joinpath(vim.fn.getcwd(), "addons/vimdow"))
+
+-- this initializes the plugin for you
+require("vimdow").setup {
 	-- Default keybindings for vimdow actions
 	keybinds = {
 		-- toggle_breakpoint = "<leader>gb",
@@ -16,3 +19,5 @@ return {
 		-- set_breakpoint = "#ff0016"
 	},
 }
+
+vim.lsp.enable "gdscript"

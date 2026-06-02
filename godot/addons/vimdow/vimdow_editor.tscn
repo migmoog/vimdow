@@ -18,7 +18,7 @@ focus_mode = 2
 mouse_filter = 0
 theme = ExtResource("1_gh56k")
 script = ExtResource("1_k517p")
-startup_script = "res://addons/vimdow/lua/vimdow/init.lua"
+startup_script = "res://addons/vimdow/lua/start.lua"
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=1261598546]
 layout_mode = 2
@@ -47,7 +47,6 @@ editor_description = "Runs and communicates with the neovim process via godot's 
 
 [node name="NoNeovimRunning" type="VBoxContainer" parent="." unique_id=448943085]
 visible = false
-propagate_maximum_size = false
 layout_mode = 2
 
 [node name="ErrorMessageContainer" type="MarginContainer" parent="NoNeovimRunning" unique_id=1925339753]
