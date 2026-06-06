@@ -23,6 +23,7 @@ var cwd: String
 ## The viewport that the editor obeys the size of
 var viewport_lock: Window
 var attached := false
+var dragging := false
 
 var _row_wraps: Array
 var _redraw_batch := []
@@ -61,8 +62,8 @@ func _ready() -> void:
 	conf = ConfigFile.new()
 	if _is_standalone():
 		conf_path = (
-			OS.get_environment("VIMDOW_CONFIG_PATH")
-			if OS.has_environment("VIMDOW_CONFIG_PATH") else "user://vimdow.cfg"
+				OS.get_environment("VIMDOW_CONFIG_PATH")
+				if OS.has_environment("VIMDOW_CONFIG_PATH") else "user://vimdow.cfg"
 		)
 		if conf.load(conf_path) != OK:
 			conf.set_value(MAIN_SECTION, "path_to_nvim", "/usr/bin/nvim")
@@ -161,6 +162,7 @@ func _acceptable_key(e: InputEvent) -> bool:
 
 func _acceptable_mouse(e: InputEvent) -> bool:
 	return attached and visible \
+			and not dragging \
 			and e is InputEventMouse
 
 
@@ -179,6 +181,11 @@ func _gui_input(event: InputEvent) -> void:
 		_mouse_buffer.append(event)
 
 
+func get_cell_size() -> Vector2:
+	return get_theme_font("normal", "VimdowEditor") \
+			.get_char_size(ord(" "), get_theme_font_size("font_size", "VimdowEditor"))
+
+
 func _process(_delta: float) -> void:
 	if attached:
 		if not _inputs_buffer.is_empty():
@@ -190,9 +197,75 @@ func _process(_delta: float) -> void:
 			client.flush_mouse_inputs(
 				grid_index,
 				_mouse_buffer,
-				get_theme_font("normal", "VimdowEditor") \
-						.get_char_size(ord(" "), get_theme_font_size("font_size", "VimdowEditor")),
+				get_cell_size(),
 			)
+
+
+func _notification(what: int) -> void:
+	match what:
+		NOTIFICATION_DRAG_BEGIN:
+			dragging = true
+		NOTIFICATION_DRAG_END:
+			dragging = false
+
+
+func _node_to_gds_path(root_node: Node, n: Node):
+	if n.unique_name_in_owner:
+		return "%" + n.name
+	else:
+		return "$" + str(root_node.get_path_to(n))
+
+
+func _can_drop_data(at_position: Vector2, data: Variant) -> bool:
+	return data is Dictionary
+
+
+func _drop_data(at_position: Vector2, data: Variant) -> void:
+	var grid_pos = at_position / get_cell_size()
+	var text
+	var bracket_types
+	match data.type:
+		"files":
+			text = ", ".join(data.files.map(func(path): return '"' + path + '"'))
+		"nodes":
+			var gds_node_paths = []
+			for node_path in data.nodes:
+				var node = data.scene_root.get_node(node_path)
+				if not node:
+					continue
+
+				gds_node_paths.push_back(node)
+
+			if Input.is_key_pressed(KEY_CTRL):
+				var vars = gds_node_paths.map(
+					func(n):
+						return "@onready var %s = %s" % [
+							n.name.to_snake_case(),
+							_node_to_gds_path(data.scene_root, n),
+						]
+				)
+				text = "\n".join(vars)
+				bracket_types = ['[[', ']]']
+			else:
+				text = ", ".join(
+					gds_node_paths.map(func(n): return _node_to_gds_path(data.scene_root, n)),
+				)
+				bracket_types = ['"', '"']
+
+	if text != null:
+		client.request(
+			"nvim_exec_lua",
+			[
+				"Vimdow.drop_text(%s%s%s, %d, %d)" % [
+					bracket_types[0],
+					text,
+					bracket_types[1],
+					grid_pos.x,
+					grid_pos.y,
+				],
+				[],
+			],
+		)
 
 
 ## NOTE: This method exists because the export crashes from parse errors
@@ -265,8 +338,8 @@ func clear_breakpoints(path = ""):
 ## Instructs the lua plugin to set the value of a breakpoint
 func set_breakpoint(path: String, line: int, enabled: bool):
 	assert(attached)
-	var command_str = "lua Vimdow.set_breakpoint(\"%s\", %d, %s, true)" % [path, line, enabled]
-	client.request("nvim_command", [command_str])
+	var lua_str = "Vimdow.set_breakpoint(\"%s\", %d, %s, true)" % [path, line, enabled]
+	client.request("nvim_exec_lua", [lua_str])
 
 #endregion
 

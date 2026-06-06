@@ -1,13 +1,26 @@
 _G.Vimdow = {}
 
-function Vimdow.setup (opts)
-	local root_dir = opts.root_dir or vim.fs.root(0, { "project.godot" })
-	if not root_dir then
-		return
-	end
-	local v = Vimdow
-	v.root_dir = root_dir
+function Vimdow.drop_text (text, col, row)
+	for _, id in pairs(vim.api.nvim_list_wins()) do
+		local winwidth = vim.api.nvim_win_get_width(id)
+		local winheight = vim.api.nvim_win_get_height(id)
+		local winpos = vim.api.nvim_win_get_position(id)
+		local winrow, wincol = winpos[1], winpos[2]
 
+		if wincol <= col and col < wincol + winwidth and winrow <= row and row < winrow + winheight then
+			local oldpos = vim.api.nvim_win_get_cursor(id)
+			-- moves the cursor to the clicked spot
+			vim.api.nvim_input_mouse("left", "press", "", 0, row, col)
+			vim.schedule(function()
+				vim.api.nvim_paste(text, false, -1)
+				vim.api.nvim_win_set_cursor(id, oldpos)
+			end)
+			return
+		end
+	end
+end
+
+function Vimdow.setup (opts)
 	local colors = opts.colors or {}
 	Vimdow.hover_breakpoint_hl = "VimdowHoverBreakpoint"
 	vim.api.nvim_set_hl(0, Vimdow.hover_breakpoint_hl, { fg = colors.breakpoint_hover or "#ffabb2" })
@@ -118,7 +131,6 @@ function Vimdow.setup (opts)
 			vim.print("Vimdow exited focus: " .. tostring(result))
 		end
 	end)
-
 
 	-- editor interface integration
 	Vimdow.ei = require "vimdow.editor"
