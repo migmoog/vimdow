@@ -223,10 +223,10 @@ func _can_drop_data(at_position: Vector2, data: Variant) -> bool:
 func _drop_data(at_position: Vector2, data: Variant) -> void:
 	var grid_pos = at_position / get_cell_size()
 	var text
-	var bracket_types
+	var bracket_types = ['"', '"']
 	match data.type:
 		"files":
-			text = ", ".join(data.files.map(func(path): return '"' + path + '"'))
+			text = ", ".join(Array(data.files).map(func(path): return "'" + path + "'"))
 		"nodes":
 			var gds_node_paths = []
 			for node_path in data.nodes:
@@ -250,7 +250,6 @@ func _drop_data(at_position: Vector2, data: Variant) -> void:
 				text = ", ".join(
 					gds_node_paths.map(func(n): return _node_to_gds_path(data.scene_root, n)),
 				)
-				bracket_types = ['"', '"']
 
 	if text != null:
 		client.request(
