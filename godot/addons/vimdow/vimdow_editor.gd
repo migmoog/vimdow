@@ -18,7 +18,7 @@ var options := { }
 var cwd: String
 
 @onready var client: NeovimClient = $NeovimClient
-@onready var w = $VimdowWindow
+@onready var vimdow_window = $VimdowWindow
 
 ## The viewport that the editor obeys the size of
 var viewport_lock: Window
@@ -140,7 +140,7 @@ func start(extra_nvim_args := PackedStringArray()) -> void:
 	client.spawn(conf.get_value(MAIN_SECTION, "path_to_nvim"), args)
 	await get_tree().create_timer(.1).timeout
 	assert(client.is_running())
-	var initial_size := get_editor_grid_size(w.size)
+	var initial_size := get_editor_grid_size()
 	client.request(
 		"nvim_ui_attach",
 		[
@@ -223,10 +223,19 @@ func _can_drop_data(at_position: Vector2, data: Variant) -> bool:
 func _drop_data(at_position: Vector2, data: Variant) -> void:
 	var grid_pos = at_position / get_cell_size()
 	var text
-	var bracket_types = ['"', '"']
+	var bracket_types = {
+		left = '"',
+		right = '"',
+	}
 	match data.type:
 		"files":
-			text = ", ".join(Array(data.files).map(func(path): return "'" + path + "'"))
+			const LUA_ESCAPE_QUOTE = '\\"'
+			text = ", ".join(Array(data.files).map(
+				func(path):
+					return LUA_ESCAPE_QUOTE + \
+							path + \
+							LUA_ESCAPE_QUOTE
+			))
 		"nodes":
 			var gds_node_paths = []
 			for node_path in data.nodes:
@@ -237,28 +246,32 @@ func _drop_data(at_position: Vector2, data: Variant) -> void:
 				gds_node_paths.push_back(node)
 
 			if Input.is_key_pressed(KEY_CTRL):
-				var vars = gds_node_paths.map(
+				text = "\n".join(gds_node_paths.map(
 					func(n):
 						return "@onready var %s = %s" % [
 							n.name.to_snake_case(),
 							_node_to_gds_path(data.scene_root, n),
 						]
-				)
-				text = "\n".join(vars)
-				bracket_types = ['[[', ']]']
+				))
+				bracket_types.left = '[['
+				bracket_types.right = ']]'
 			else:
 				text = ", ".join(
 					gds_node_paths.map(func(n): return _node_to_gds_path(data.scene_root, n)),
 				)
+		"obj_property":
+			text = (str(data.value) if Input.is_key_pressed(KEY_ALT) else '\\"' + data.property + '\\"')
+		_:
+			push_warning("Unimplemented drop: %s" % str(data))
 
 	if text != null:
 		client.request(
 			"nvim_exec_lua",
 			[
 				"Vimdow.drop_text(%s%s%s, %d, %d)" % [
-					bracket_types[0],
+					bracket_types.left,
 					text,
-					bracket_types[1],
+					bracket_types.right,
 					grid_pos.x,
 					grid_pos.y,
 				],
@@ -285,11 +298,8 @@ func _is_standalone() -> bool:
 	return not Engine.is_editor_hint() and DisplayServer.get_name() != "headless"
 
 
-func get_editor_grid_size(s: Vector2) -> Vector2i:
-	var font_size = theme.get_font_size("font_size", "VimdowEditor")
-	var char_size: Vector2 = theme.get_font("normal", "VimdowEditor") \
-			.get_char_size(ord(" "), font_size)
-	return Vector2i((s / char_size).floor())
+func get_editor_grid_size() -> Vector2i:
+	return Vector2i((vimdow_window.size / get_cell_size()).floor())
 
 
 func _on_neovim_client_neovim_event(method: String, params: Array) -> void:
@@ -317,7 +327,7 @@ func _grid_assert(grid: int):
 func try_resize() -> void:
 	if not is_node_ready() or not attached:
 		return
-	var s := get_editor_grid_size(w.size)
+	var s := get_editor_grid_size()
 	client.request("nvim_ui_try_resize", [s.x, s.y])
 
 
@@ -367,7 +377,7 @@ func flush():
 		_log_options()
 
 	assert(not hl.is_empty())
-	w.flush(hl, mode_info[mode_idx])
+	vimdow_window.flush(hl, mode_info[mode_idx])
 
 
 static func rgb_to_color(rgb: int) -> Color:
@@ -446,7 +456,7 @@ func grid_resize(grid: int, width: int, height: int):
 	_row_wraps = []
 	for _i in height:
 		_row_wraps.append(false)
-	w.set_grid_size(width, height)
+	vimdow_window.set_grid_size(width, height)
 
 
 # this shouldn't be sent if ext_multigrid == false.
@@ -467,7 +477,7 @@ func win_viewport(
 func grid_line(grid: int, row: int, col_start: int, cells: Array, wrapline: bool):
 	_grid_assert(grid)
 	_row_wraps[row] = wrapline
-	var old_line = w.get_line(row)
+	var old_line = vimdow_window.get_line(row)
 	var line = old_line.substr(0, col_start)
 	var last_hl_id = null
 	var col_end = col_start
@@ -493,18 +503,18 @@ func grid_line(grid: int, row: int, col_start: int, cells: Array, wrapline: bool
 		assert(hl.has(last_hl_id))
 
 	line += old_line.substr(line.length())
-	w.set_line(row, line)
+	vimdow_window.set_line(row, line)
 
 
 func grid_clear(grid: int):
 	_grid_assert(grid)
-	w.clear()
+	vimdow_window.clear()
 
 
 func grid_cursor_goto(grid: int, row: int, col: int):
 	_grid_assert(grid)
-	w.cursor.x = col
-	w.cursor.y = row
+	vimdow_window.cursor.x = col
+	vimdow_window.cursor.y = row
 
 
 func grid_scroll(
@@ -521,7 +531,7 @@ func grid_scroll(
 	var lines := []
 	var hl_regions := []
 	for i in range(top, bot):
-		lines.append(w.get_line(i))
+		lines.append(vimdow_window.get_line(i))
 		hl_regions.append($VimdowWindow/Highlighter.hl_regions[i].duplicate())
 
 	var dst_top := top - rows
@@ -532,9 +542,9 @@ func grid_scroll(
 		var src_regions = hl_regions.pop_front()
 		if row < top or row >= bot:
 			continue
-		var dst_line = w.get_line(row)
+		var dst_line = vimdow_window.get_line(row)
 		var line = dst_line.substr(0, left) + src_line.substr(left, right - left) + dst_line.substr(right)
-		w.set_line(row, line)
+		vimdow_window.set_line(row, line)
 		for i in range(left, right):
 			$VimdowWindow/Highlighter.hl_regions[row][i] = src_regions[i]
 
