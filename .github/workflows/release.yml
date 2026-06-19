@@ -105,8 +105,8 @@ jobs:
         uses: firebelley/godot-export@v7.0.0
         id: export
         with:
-          godot_executable_download_url: "https://downloads.godotengine.org/?version=4.6.2&flavor=stable&slug=linux.x86_64.zip&platform=linux.64"
-          godot_export_templates_download_url: "https://downloads.godotengine.org/?version=4.6.2&flavor=stable&slug=export_templates.tpz&platform=templates"
+          godot_executable_download_url: "https://github.com/godotengine/godot/releases/download/4.6.2-stable/Godot_v4.6.2-stable_linux.x86_64.zip"
+          godot_export_templates_download_url: "https://github.com/godotengine/godot/releases/download/4.6.2-stable/Godot_v4.6.2-stable_export_templates.tpz"
           relative_project_path: ./godot/
           archive_output: true
           archive_root_folder: true
