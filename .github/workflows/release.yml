@@ -70,9 +70,10 @@ jobs:
           pattern: vimdow-lib-release-*
           path: godot/addons/vimdow/bin/release
 
-      - name: Make exports directory
+      - name: Setup exports
         run: |
           mkdir exports
+          touch project.godot
 
       - name: Export standalone
         uses: firebelley/godot-export@v7.0.0
