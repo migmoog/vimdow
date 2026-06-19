@@ -73,7 +73,24 @@ jobs:
       - name: Setup exports
         run: |
           mkdir exports
-          touch project.godot
+          cat > godot/project.godot << EOF
+          config_version=5
+
+          [application]
+
+          config/name="Vimdow"
+          config/features=PackedStringArray("4.6.2", "Forward Plus")
+          config/icon="res://icon.svg"
+
+          [display]
+
+          window/stretch/mode="canvas_items"
+          window/stretch/aspect="expand"
+
+          [editor_plugins]
+
+          enabled=PackedStringArray("res://addons/vimdow/plugin.cfg")
+          EOF
 
       - name: Export standalone
         uses: firebelley/godot-export@v7.0.0
