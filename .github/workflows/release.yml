@@ -90,6 +90,15 @@ jobs:
           [editor_plugins]
 
           enabled=PackedStringArray("res://addons/vimdow/plugin.cfg")
+
+          [physics]
+
+          3d/physics_engine="Jolt Physics"
+
+          [rendering]
+
+          rendering_device/driver.windows="d3d12"
+          textures/vram_compression/import_etc2_astc=true
           EOF
 
       - name: Export standalone
