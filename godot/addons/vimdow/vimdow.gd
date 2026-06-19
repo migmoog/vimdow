@@ -163,7 +163,7 @@ func _get_plugin_icon() -> Texture2D:
 func _make_visible(visible: bool) -> void:
 	if editor:
 		editor.visible = window_wrapper.visible or visible
-	if window_wrapper.visible:
+	if window_wrapper and window_wrapper.visible:
 		_focus_last_editor()
 		window_wrapper.show()
 	if visible:
