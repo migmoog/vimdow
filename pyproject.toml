@@ -1,9 +1,10 @@
 [project]
 name = "vimdow"
 version = "0.3.5"
-description = "Add your description here"
+description = "Neovim client based on godot."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "commented-configparser>=3.0.0",
     "invoke",
 ]

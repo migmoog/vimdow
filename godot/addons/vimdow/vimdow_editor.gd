@@ -4,7 +4,7 @@ extends MarginContainer
 
 ## Neovim ui docs state that there is only ever one
 ## grid index passed to grid events, 1 the global grid
-# NOTE: an option in the future might be to have an "ext_multigrid" toggle that 
+# NOTE: an option in the future might be to have an "ext_multigrid" toggle that
 # will split the windows into their own separate windows. So these variables are unchanged for now
 var grid_index: int = 1
 var grid_width: int
@@ -12,18 +12,18 @@ var grid_height: int
 var mode: String
 var mode_idx: int
 var mode_info: Array
-var hl := {}
-var hl_groups := {}
-var options := {}
+var hl := { }
+var hl_groups := { }
+var options := { }
 var cwd: String
 
-@export_file_path() var startup_script: String
 @onready var client: NeovimClient = $NeovimClient
-@onready var w = $VimdowWindow
+@onready var vimdow_window = $VimdowWindow
 
 ## The viewport that the editor obeys the size of
 var viewport_lock: Window
 var attached := false
+var dragging := false
 
 var _row_wraps: Array
 var _redraw_batch := []
@@ -35,9 +35,8 @@ var _option_set
 ## Configuration Handling ##
 const MAIN_SECTION = "neovim"
 const THEME_SECTION = "theme"
-var _conf_path: String
-var _conf: ConfigFile
-
+var conf_path: String
+var conf: ConfigFile
 
 #region SHORTCUTS
 var increase_fontsize_shortcut: Shortcut
@@ -47,12 +46,12 @@ var decrease_fontsize_shortcut: Shortcut
 func _init() -> void:
 	increase_fontsize_shortcut = Shortcut.new()
 	decrease_fontsize_shortcut = Shortcut.new()
-	
+
 	var ifev = InputEventKey.new()
 	ifev.ctrl_pressed = true
 	ifev.keycode = KEY_EQUAL
 	increase_fontsize_shortcut.events = [ifev]
-	
+
 	var dfev = InputEventKey.new()
 	dfev.ctrl_pressed = true
 	dfev.keycode = KEY_MINUS
@@ -60,23 +59,25 @@ func _init() -> void:
 
 
 func _ready() -> void:
-	_conf = ConfigFile.new()
+	conf = ConfigFile.new()
 	if _is_standalone():
-		_conf_path = (
-			OS.get_environment("VIMDOW_CONFIG_PATH") 
-			if OS.has_environment("VIMDOW_CONFIG_PATH") else
-			"user://vimdow.cfg"
+		conf_path = (
+				OS.get_environment("VIMDOW_CONFIG_PATH")
+				if OS.has_environment("VIMDOW_CONFIG_PATH") else "user://vimdow.cfg"
 		)
-		if _conf.load(_conf_path) != OK:
-			_conf.set_value(MAIN_SECTION, "path_to_nvim", "/usr/bin/nvim")
+		if conf.load(conf_path) != OK:
+			conf.set_value(MAIN_SECTION, "path_to_nvim", "/usr/bin/nvim")
 		call_deferred("start")
 	else:
-		_conf.set_value(MAIN_SECTION, "path_to_nvim", ProjectSettings.get_setting("vimdow/path_to_nvim"))
+		var result = conf.load(conf_path) != OK
+		if result:
+			push_error("Error loading vimdow config path: %s" % error_string(result))
 		var ei = _get_editor_interface()
 		var es = ei.get_editor_settings()
 		es.add_shortcut("vimdow/increase_font_size", increase_fontsize_shortcut)
 		es.add_shortcut("vimdow/decrease_font_size", decrease_fontsize_shortcut)
 		$ColorRect.color = es.get_setting("interface/theme/base_color")
+
 
 func _exit_tree() -> void:
 	if not _is_standalone():
@@ -84,76 +85,84 @@ func _exit_tree() -> void:
 		es.remove_shortcut("vimdow/increase_font_size")
 		es.remove_shortcut("vimdow/decrease_font_size")
 
-func start() -> void:
+
+func start(extra_nvim_args := PackedStringArray()) -> void:
+	if conf.get_value(MAIN_SECTION, "template", false):
+		show_error("Your config file has \"template=true\" in the neovim section. Remove that value to actually use your config in %s" % conf_path)
+		return
+
+	# Debug setting for logging all messagepack rpc's
 	if ProjectSettings.get_setting("vimdow/debug/log_msgpack"):
 		_initialize_todos()
 		client.neovim_response.connect(self._log_responses)
-	
+
+	# ConfigFile theme options
+	if conf.has_section_key(THEME_SECTION, "font_size"):
+		var fs = conf.get_value(THEME_SECTION, "font_size")
+		theme.set_font_size("font_size", "VimdowEditor", fs)
+
+	for font_property in ["bold", "italic", "normal"]:
+		if conf.has_section_key(THEME_SECTION, font_property):
+			var path_from_conf = conf.get_value(THEME_SECTION, font_property)
+			var path = conf_path.get_base_dir().path_join(path_from_conf).simplify_path()
+
+			if not FileAccess.file_exists(path):
+				push_error("No font file '%s'" % path)
+				continue
+			var font_file := FontFile.new()
+			var bytes = FileAccess.get_file_as_bytes(path)
+			font_file.data = bytes
+
+			theme.set_font(
+				font_property,
+				"VimdowEditor",
+				font_file,
+			)
+
 	if _is_standalone():
 		var r = get_tree().root
 		assert(r.size.x == size.x and r.size.y == size.y)
-		
-		# ConfigFile theme options
-		if _conf.has_section_key(THEME_SECTION, "font_size"):
-			var fs = _conf.get_value(THEME_SECTION, "font_size")
-			theme.set_font_size("font_size", "VimdowEditor", fs)
-
-		for font_property in ["bold", "italic", "normal"]:
-			if _conf.has_section_key(THEME_SECTION, font_property):
-				var path_from_conf = _conf.get_value(THEME_SECTION, font_property)
-				var path = _conf_path.get_base_dir().path_join(path_from_conf).simplify_path()
-
-				if not FileAccess.file_exists(path):
-					push_error("No font file '%s'" % path)
-					continue
-				var font_file := FontFile.new()
-				var bytes = FileAccess.get_file_as_bytes(path)
-				font_file.data = bytes
-
-				theme.set_font(
-					font_property,
-					"VimdowEditor",
-					font_file
-				)
-
 		lock_to_window(r)
 	else:
-		OS.set_environment("GODOT_LANGSERVER_PORT", str(_get_editor_interface()\
-			.get_editor_settings()\
-			.get_setting("network/language_server/remote_port")))
+		OS.set_environment(
+			"GODOT_LANGSERVER_PORT",
+			str(
+				_get_editor_interface() \
+						.get_editor_settings() \
+						.get_setting("network/language_server/remote_port"),
+			),
+		)
 
-		OS.set_environment("GODOT_VERSION", Engine.get_version_info().string)
-	
 	var args := PackedStringArray(["--embed"])
-	if not _is_standalone():
-		args.append_array([
-			"-S",
-			ProjectSettings.globalize_path(startup_script),
-		])
+	args.append_array(extra_nvim_args)
 	args.append_array(OS.get_cmdline_user_args())
 
-	client.spawn(_conf.get_value(MAIN_SECTION, "path_to_nvim"), args)
+	client.spawn(conf.get_value(MAIN_SECTION, "path_to_nvim"), args)
 	await get_tree().create_timer(.1).timeout
 	assert(client.is_running())
-	var initial_size := get_editor_grid_size(w.size)
-	# attached = client.attach(initial_size.x, initial_size.y)
-	client.request("nvim_ui_attach", [initial_size.x, initial_size.y, {
-		"ext_linegrid" : true,
-		"rgb" : true,
-	}])
+	var initial_size := get_editor_grid_size()
+	client.request(
+		"nvim_ui_attach",
+		[
+			initial_size.x,
+			initial_size.y,
+			{
+				"ext_linegrid": true,
+				"rgb": true,
+			},
+		],
+	)
 	attached = true # may come up with a better way to assert this
-	
-	var file = ProjectSettings.get_setting("vimdow/edit_file")
-	if file:
-		open_file(file)
 
 
 func _acceptable_key(e: InputEvent) -> bool:
-	return attached and visible\
+	return attached and visible \
 			and (e is InputEventKey and e.is_pressed())
 
+
 func _acceptable_mouse(e: InputEvent) -> bool:
-	return attached and visible\
+	return attached and visible \
+			and not dragging \
 			and e is InputEventMouse
 
 
@@ -172,35 +181,116 @@ func _gui_input(event: InputEvent) -> void:
 		_mouse_buffer.append(event)
 
 
+func get_cell_size() -> Vector2:
+	return get_theme_font("normal", "VimdowEditor") \
+			.get_char_size(ord(" "), get_theme_font_size("font_size", "VimdowEditor"))
+
+
 func _process(_delta: float) -> void:
 	if attached:
 		if not _inputs_buffer.is_empty():
 			client.flush_key_inputs(_inputs_buffer)
-		
+
 		if not _mouse_buffer.is_empty():
-			var char_size := get_theme_font("normal", "VimdowEditor")\
-				.get_char_size(ord(' '), get_theme_font_size("font_size", "VimdowEditor"))
+			var char_size := get_theme_font("normal", "VimdowEditor") \
+					.get_char_size(ord(' '), get_theme_font_size("font_size", "VimdowEditor"))
 			client.flush_mouse_inputs(
 				grid_index,
 				_mouse_buffer,
-				get_theme_font("normal", "VimdowEditor")\
-						.get_char_size(ord(" "), get_theme_font_size("font_size", "VimdowEditor")),
+				get_cell_size(),
 			)
+
+
+func _notification(what: int) -> void:
+	match what:
+		NOTIFICATION_DRAG_BEGIN:
+			dragging = true
+		NOTIFICATION_DRAG_END:
+			dragging = false
+
+
+func _node_to_gds_path(root_node: Node, n: Node):
+	if n.unique_name_in_owner:
+		return "%" + n.name
+	else:
+		return "$" + str(root_node.get_path_to(n))
+
+
+func _can_drop_data(at_position: Vector2, data: Variant) -> bool:
+	return data is Dictionary
+
+
+func _drop_data(at_position: Vector2, data: Variant) -> void:
+	var grid_pos = at_position / get_cell_size()
+	var text
+	var bracket_types = {
+		left = '"',
+		right = '"',
+	}
+	match data.type:
+		"files":
+			const LUA_ESCAPE_QUOTE = '\\"'
+			text = ", ".join(Array(data.files).map(
+				func(path):
+					return LUA_ESCAPE_QUOTE + \
+							path + \
+							LUA_ESCAPE_QUOTE
+			))
+		"nodes":
+			var gds_node_paths = []
+			for node_path in data.nodes:
+				var node = data.scene_root.get_node(node_path)
+				if not node:
+					continue
+
+				gds_node_paths.push_back(node)
+
+			if Input.is_key_pressed(KEY_CTRL):
+				text = "\n".join(gds_node_paths.map(
+					func(n):
+						return "@onready var %s = %s" % [
+							n.name.to_snake_case(),
+							_node_to_gds_path(data.scene_root, n),
+						]
+				))
+				bracket_types.left = '[['
+				bracket_types.right = ']]'
+			else:
+				text = ", ".join(
+					gds_node_paths.map(func(n): return _node_to_gds_path(data.scene_root, n)),
+				)
+		"obj_property":
+			text = (str(data.value) if Input.is_key_pressed(KEY_ALT) else '\\"' + data.property + '\\"')
+		_:
+			push_warning("Unimplemented drop: %s" % str(data))
+
+	if text != null:
+		client.request(
+			"nvim_exec_lua",
+			[
+				"Vimdow.drop_text(%s%s%s, %d, %d)" % [
+					bracket_types.left,
+					text,
+					bracket_types.right,
+					grid_pos.x,
+					grid_pos.y,
+				],
+				[],
+			],
+		)
+
 
 ## NOTE: This method exists because the export crashes from parse errors
 ## when EditorInterface is not present
 func _get_editor_interface():
 	return Engine.get_singleton("EditorInterface")
 
+
 func quit(code: int):
 	if _is_standalone():
 		get_tree().quit()
 	else:
-		if code != 0:
-			push_warning("Neovim quit with code: %d" % code)
-		$VimdowWindow.visible = false
-		$ButtonContainer.visible = true
-		attached = false
+		show_error("Neovim quit with exit code %d." % code)
 
 
 # checks if vimdow is the standalone app or the editor plugin
@@ -208,11 +298,8 @@ func _is_standalone() -> bool:
 	return not Engine.is_editor_hint() and DisplayServer.get_name() != "headless"
 
 
-func get_editor_grid_size(s: Vector2) -> Vector2i:
-	var font_size = theme.get_font_size("font_size", "VimdowEditor")
-	var char_size: Vector2 = theme.get_font("normal", "VimdowEditor")\
-		.get_char_size(ord(" "), font_size)
-	return Vector2i((s/char_size).floor())
+func get_editor_grid_size() -> Vector2i:
+	return Vector2i((vimdow_window.size / get_cell_size()).floor())
 
 
 func _on_neovim_client_neovim_event(method: String, params: Array) -> void:
@@ -230,9 +317,9 @@ func _on_neovim_client_neovim_request(msgid: int, method: String, _params: Array
 		release_focus()
 		client.respond(msgid, null, null)
 
+
 func _grid_assert(grid: int):
 	assert(grid == grid_index, "Shouldn't receive an index for a different grid")
-
 
 #region NEOVIM_COMMANDS
 
@@ -240,8 +327,9 @@ func _grid_assert(grid: int):
 func try_resize() -> void:
 	if not is_node_ready() or not attached:
 		return
-	var s := get_editor_grid_size(w.size)
+	var s := get_editor_grid_size()
 	client.request("nvim_ui_try_resize", [s.x, s.y])
+
 
 ## Opens a file in vimdow
 func open_file(path: String, line: int = -1):
@@ -249,22 +337,24 @@ func open_file(path: String, line: int = -1):
 		var cmd = ("e +%d " % line if line > 0 else "e ") + path
 		client.request("nvim_command", [cmd])
 
+
 ## Instructs the lua plugin to clear all breakpoints. Can optionally specify the buffer to clear
 func clear_breakpoints(path = ""):
 	assert(attached)
-	client.request("nvim_command", [ "VimdowClearBreakpoints " + path ])
+	client.request("nvim_command", ["VimdowClearBreakpoints " + path])
+
 
 ## Instructs the lua plugin to set the value of a breakpoint
 func set_breakpoint(path: String, line: int, enabled: bool):
 	assert(attached)
-	var command_str = "lua Vimdow.set_breakpoint(\"%s\", %d, %s, true)" % [path, line, enabled]
-	client.request("nvim_command", [ command_str ])
+	var lua_str = "Vimdow.set_breakpoint(\"%s\", %d, %s, true)" % [path, line, enabled]
+	client.request("nvim_exec_lua", [lua_str])
 
 #endregion
 
 #region REDRAW_EVENTS
 func flush():
-	var  i := 0
+	var i := 0
 	var dbg = ProjectSettings.get_setting("vimdow/debug/log_msgpack")
 	while not _redraw_batch.is_empty():
 		var event: Array = _redraw_batch.pop_front()
@@ -273,18 +363,21 @@ func flush():
 			for e in event:
 				callv(event_name, e)
 		elif dbg:
-			_redraw_events.store_line("[%d] %s: %s" %[
-				i,
-				event_name, 
-				JSON.stringify(event)])
+			_redraw_events.store_line(
+				"[%d] %s: %s" % [
+					i,
+					event_name,
+					JSON.stringify(event),
+				],
+			)
 		i += 1
-	if dbg: 
+	if dbg:
 		_redraw_events.store_line("###FLUSHED###")
 		_redraw_events.flush()
 		_log_options()
-	
+
 	assert(not hl.is_empty())
-	w.flush(hl, mode_info[mode_idx])
+	vimdow_window.flush(hl, mode_info[mode_idx])
 
 
 static func rgb_to_color(rgb: int) -> Color:
@@ -292,29 +385,37 @@ static func rgb_to_color(rgb: int) -> Color:
 		((rgb >> 16) & 0xFF) / 255.0,
 		((rgb >> 8) & 0xFF) / 255.0,
 		(rgb & 0xFF) / 255.0,
-		1.0
+		1.0,
 	)
 
 
-func _add_hl(hl_id:int, attr: Dictionary):
+func _add_hl(hl_id: int, attr: Dictionary):
 	for color_attr in ["foreground", "background", "special"]:
 		if attr.has(color_attr):
 			attr[color_attr] = rgb_to_color(attr[color_attr])
-	
+
 	hl[hl_id] = attr
 
 
 func default_colors_set(rgb_fg: int, rgb_bg: int, rgb_sp: int, _cterm_fg, _cterm_bg):
-	_add_hl(0, {
-		foreground = rgb_fg,
-		background = rgb_bg,
-		special = rgb_sp
-	})
-	
+	_add_hl(
+		0,
+		{
+			foreground = rgb_fg,
+			background = rgb_bg,
+			special = rgb_sp,
+		},
+	)
+
 	$ColorRect.color = hl[0].background
 
-func hl_attr_define(id: int, rgb_attr: Dictionary, 
-	_cterm_attr: Dictionary, _info: Array):
+
+func hl_attr_define(
+		id: int,
+		rgb_attr: Dictionary,
+		_cterm_attr: Dictionary,
+		_info: Array,
+):
 	_add_hl(id, rgb_attr)
 
 
@@ -355,20 +456,28 @@ func grid_resize(grid: int, width: int, height: int):
 	_row_wraps = []
 	for _i in height:
 		_row_wraps.append(false)
-	w.set_grid_size(width, height)
+	vimdow_window.set_grid_size(width, height)
 
 
 # this shouldn't be sent if ext_multigrid == false.
-# might be a bug but have this to just get it out of logs 
-func win_viewport(_grid: int, _win: int, _topline: int, _botline: int, 
-	_curline: int, _curcol: int, _line_count: int, _scroll_delta: int):
+# might be a bug but have this to just get it out of logs
+func win_viewport(
+		_grid: int,
+		_win: int,
+		_topline: int,
+		_botline: int,
+		_curline: int,
+		_curcol: int,
+		_line_count: int,
+		_scroll_delta: int,
+):
 	return
 
 
 func grid_line(grid: int, row: int, col_start: int, cells: Array, wrapline: bool):
 	_grid_assert(grid)
 	_row_wraps[row] = wrapline
-	var old_line = w.get_line(row)
+	var old_line = vimdow_window.get_line(row)
 	var line = old_line.substr(0, col_start)
 	var last_hl_id = null
 	var col_end = col_start
@@ -392,46 +501,52 @@ func grid_line(grid: int, row: int, col_start: int, cells: Array, wrapline: bool
 				col_end += 1
 				regions[col] = last_hl_id
 		assert(hl.has(last_hl_id))
-	
+
 	line += old_line.substr(line.length())
-	w.set_line(row, line)
+	vimdow_window.set_line(row, line)
 
 
 func grid_clear(grid: int):
 	_grid_assert(grid)
-	w.clear()
+	vimdow_window.clear()
 
 
 func grid_cursor_goto(grid: int, row: int, col: int):
 	_grid_assert(grid)
-	w.cursor.x = col
-	w.cursor.y = row
+	vimdow_window.cursor.x = col
+	vimdow_window.cursor.y = row
 
 
-func grid_scroll(grid: int, top: int, bot: int, 
-	left: int, right: int, rows: int, _cols: int):
+func grid_scroll(
+		grid: int,
+		top: int,
+		bot: int,
+		left: int,
+		right: int,
+		rows: int,
+		_cols: int,
+):
 	_grid_assert(grid)
-	
+
 	var lines := []
 	var hl_regions := []
 	for i in range(top, bot):
-		lines.append(w.get_line(i))
+		lines.append(vimdow_window.get_line(i))
 		hl_regions.append($VimdowWindow/Highlighter.hl_regions[i].duplicate())
-	
+
 	var dst_top := top - rows
 	var dst_bot := bot - rows
-	
+
 	for row in range(dst_top, dst_bot):
 		var src_line = lines.pop_front()
 		var src_regions = hl_regions.pop_front()
 		if row < top or row >= bot:
 			continue
-		var dst_line = w.get_line(row)
+		var dst_line = vimdow_window.get_line(row)
 		var line = dst_line.substr(0, left) + src_line.substr(left, right - left) + dst_line.substr(right)
-		w.set_line(row, line)
+		vimdow_window.set_line(row, line)
 		for i in range(left, right):
 			$VimdowWindow/Highlighter.hl_regions[row][i] = src_regions[i]
-
 
 #region OPTION_SET
 func option_set(opt_name: String, value: Variant):
@@ -445,17 +560,19 @@ func _initialize_todos():
 	const TODOS_PATH = "res://../nvim_todos"
 	if not DirAccess.dir_exists_absolute(TODOS_PATH):
 		DirAccess.make_dir_absolute(TODOS_PATH)
-	_redraw_events  = FileAccess.open(TODOS_PATH.path_join("redraw_events.txt"), FileAccess.WRITE)
+	_redraw_events = FileAccess.open(TODOS_PATH.path_join("redraw_events.txt"), FileAccess.WRITE)
 	_option_set = FileAccess.open(TODOS_PATH.path_join("option_set.json"), FileAccess.WRITE)
 
 
 func _log_options():
-	_option_set.store_string(JSON.stringify(
-		options, 
-		"\t", 
-		false, 
-		true
-	) + ",\n\n")
+	_option_set.store_string(
+		JSON.stringify(
+			options,
+			"\t",
+			false,
+			true,
+		) + ",\n\n",
+	)
 	_option_set.flush()
 
 
@@ -463,17 +580,21 @@ func _log_responses(msgid: int, error: Variant, result: Variant) -> void:
 	print("msgid: %d, error: %s, result: %s" % [msgid, str(error), str(result)])
 #endregion
 
-
-
 ## Forces the editor to follow the same size
 ## as the viewport holding it and add it as a child
 func lock_to_window(v: Window):
-	assert(not get_parent() is Container, 
-			"Cannot resize while attached to a container")
-	assert(v.is_ancestor_of(self),
-			"Editor must be child of the viewport its locked to")
-	assert(viewport_lock == null,
-			"Editor can only lock to one viewport at a time")
+	assert(
+		not get_parent() is Container,
+		"Cannot resize while attached to a container",
+	)
+	assert(
+		v.is_ancestor_of(self),
+		"Editor must be child of the viewport its locked to",
+	)
+	assert(
+		viewport_lock == null,
+		"Editor can only lock to one viewport at a time",
+	)
 	viewport_lock = v
 	v.size_changed.connect(_on_viewport_lock_size_changed)
 	_on_viewport_lock_size_changed()
@@ -482,10 +603,18 @@ func lock_to_window(v: Window):
 ## Removes the editor from the current viewport its locked to
 ## and unattach its size change signal
 func unlock_from_window():
-	assert(viewport_lock != null, 
-			"Not locked to any viewport")
+	assert(
+		viewport_lock != null,
+		"Not locked to any viewport",
+	)
 	viewport_lock.size_changed.disconnect(_on_viewport_lock_size_changed)
 	viewport_lock = null
+
+
+func show_error(text: String) -> void:
+	$VimdowWindow.visible = false
+	$NoNeovimRunning.visible = true
+	%ErrorText.text = text
 
 
 func _on_viewport_lock_size_changed():
@@ -496,6 +625,12 @@ func _on_viewport_lock_size_changed():
 
 
 func _on_restart_button_pressed() -> void:
-	$ButtonContainer.visible = false
+	$NoNeovimRunning.visible = false
 	$VimdowWindow.visible = true
-	call_deferred("start")
+
+	#reload config
+	var result = conf.load(conf_path)
+	if result == OK:
+		call_deferred("start")
+	else:
+		show_error("Couldn't reload config: %s" % error_string(result))

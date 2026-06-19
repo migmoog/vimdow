@@ -17,16 +17,28 @@ This not only helps contributors, but it also helps bring more traction to your 
 
 Vimdow is part rust GDExtension library, so it adds a bit more complication to testing the plugin. Vimdow uses [pyinvoke](https://pyinvoke.org). Once you've installed pyinvoke, you have an available list of targets in `tasks.py`.
 
+### Compiling the GDExtension
+
 - b\[uild\]: will build the rust libraries and copy them to the godot plugin
- - `--profile=<PROFILE>`: the type of profile to build for. Can be "debug", "release", or "both".
+    - `--profile=<PROFILE>`: the type of profile to build for. Can be "debug", "release", or "both".
 - c\[lean\]: will delete all recent builds in the rust and godot plugin
+
+### Running Vimdow
 
 These targets require an environment variable called `GDPATH` to know where godot's binary is.
 - s\[tandalone\]: will run Vimdow as a godot project
- - `--profile=<PROFILE>`: same as in "build"
- - `--clean`: will run "clean" before rebuilding the library
+    - `--profile=<PROFILE>`: same as in "build"
+    - `--clean`: will run "clean" before rebuilding the library
 - e\[ditor\]: will run an editor session to edit the Vimdow plugin project. Is also the **default task**.
- - `--profile=<PROFILE>`: same as in "build"
- - `--clean`: same as in "standalone"
+    - `--profile=<PROFILE>`: same as in "build"
+    - `--clean`: same as in "standalone"
+
+### Exporting vimdow
+
+If you have `GDPATH` set to your godot executable, and the export templates for your godot version installed, you can export vimdow for your system. There are two separate targets.
+- export_standalone/es: exports the standalone client as an executable for your system. **NOTE**: you must have the necessary export templates installed for each profile.
+    - `--profile=<PROFILE>`: same as in "build"
+- export_plugin/ep: exports the plugin as a zip file for all godot platforms. Will build both profiles.
+
 
 For additional information you can use `inv <target> --help` to get more information.

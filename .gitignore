@@ -10,6 +10,7 @@ godot/.import/
 godot/export.cfg
 godot/export_credentials.cfg
 godot/*.tmp
+godot/project.godot
 
 # Imported translations (automatically generated from CSV files)
 godot/*.translation

@@ -12,7 +12,6 @@ use std::os::windows::process::CommandExt;
 
 use rmpv::Value;
 
-use crate::err::VimdowError;
 use crate::neovim::msgpack::godot_to_rmpv;
 
 pub struct NeovimProcess {
@@ -35,7 +34,7 @@ pub struct NeovimProcess {
 }
 
 impl NeovimProcess {
-    pub fn new(program: &str, nvim_args: &[impl AsRef<OsStr>]) -> Result<Self, VimdowError> {
+    pub fn new(program: &str, nvim_args: &[impl AsRef<OsStr>]) -> Result<Self, std::io::Error> {
         let mut child_builder = Command::new(program);
         child_builder.stdin(Stdio::piped()).stdout(Stdio::piped());
 
@@ -48,7 +47,7 @@ impl NeovimProcess {
             child_builder.arg(arg);
         }
 
-        let mut child = child_builder.spawn().map_err(VimdowError::IO)?;
+        let mut child = child_builder.spawn()?;
 
         let shutdown = Arc::new(AtomicBool::new(false));
 

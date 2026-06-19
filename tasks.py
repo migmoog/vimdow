@@ -1,4 +1,4 @@
-import shutil
+import commentedconfigparser
 import shutil
 from enum import StrEnum
 from invoke.exceptions import PlatformError
@@ -10,9 +10,9 @@ from shutil import copy
 GDPATH = os.getenv("GDPATH")
 if not GDPATH:
     GDPATH = "godot"
-def gd_cmd(editor=True):
-    cmd = f"{GDPATH} {'-e' if editor else ''} --path godot/"
-    return cmd
+
+def gd_cmd(*args) -> str:
+    return f"\"{GDPATH}\" {" ".join(args)} --path godot/"
 
 class BuildProfile(StrEnum):
     BOTH = "both"
@@ -36,6 +36,10 @@ def cargo_cmd(method: str, *args) -> str:
     cmd = f"cargo {method} {' '.join(args)} --manifest-path={CARGO_TOML}"
     return cmd
 
+def init_dir(path):
+    if not os.path.exists(path):
+        os.mkdir(path)
+
 @task(aliases=["c"])
 def clean(c):
     print("Cleaning cargo build")
@@ -54,10 +58,8 @@ def build(c, profile: BuildProfile = None, clean=False):
     if clean: 
         clean(c)
 
-    if not os.path.exists("godot/addons/vimdow/bin"):
-        os.mkdir("godot/addons/vimdow/bin")
-    if not os.path.exists("build/"):
-        os.mkdir("build/")
+    init_dir("godot/addons/vimdow/bin")
+    init_dir("build/")
 
     profile = profile or BuildProfile.DEBUG
     profiles: dict = {}
@@ -91,7 +93,7 @@ def build(c, profile: BuildProfile = None, clean=False):
 def standalone(c, nobuild=False, profile: BuildProfile = BuildProfile.DEBUG, clean=False):
     if not nobuild:
         build(c, profile, clean)
-    c.run(gd_cmd(False))
+    c.run(gd_cmd())
 
 @task(
     help={
@@ -104,7 +106,7 @@ def standalone(c, nobuild=False, profile: BuildProfile = BuildProfile.DEBUG, cle
 def editor(c, nobuild=False, profile: BuildProfile = BuildProfile.DEBUG, clean=False):
     if not nobuild:
         build(c, profile, clean)
-    c.run(gd_cmd())
+    c.run(gd_cmd("-e"))
 
 
 @task(
@@ -112,5 +114,62 @@ def editor(c, nobuild=False, profile: BuildProfile = BuildProfile.DEBUG, clean=F
     aliases = ["ep"]
 )
 def export_plugin(c):
+    print("Setting defaults for plugin")
+    local_config = commentedconfigparser.CommentedConfigParser()
+    LOCAL_CFG_PATH = "godot/addons/vimdow/local.cfg"
+    local_config.read(LOCAL_CFG_PATH)
+    local_config["neovim"]["template"] = "true"
+    with open(LOCAL_CFG_PATH, "w") as local_config_file:
+        local_config.write(local_config_file)
+
     print("Zipping plugin to build/")
     shutil.make_archive("build/vimdow-plugin", "zip", root_dir="godot/addons")
+
+@task(
+    aliases = ["es"],
+    help = {
+     "profile" : "The profile of the library to build. Default is \"debug\""
+    }
+)
+def export_standalone(c, profile=BuildProfile.DEBUG):
+    build(c, profile)
+    
+    preset_name = "vimdow-standalone-"
+    export_file = "vimdow."
+    extension=None
+    if profile != BuildProfile.BOTH:
+        export_file += profile.value
+    match SYSTEM:
+        case "Windows":
+            preset_name += "win"
+            extension = ".exe"
+        case "Linux":
+            preset_name += "linux"
+            extension = ".x86_64"
+        case "Darwin":
+            preset_name += "mac"
+            extension = ".app"
+    if profile != BuildProfile.BOTH:
+        path = "build/" + profile.value
+        init_dir(path)
+        c.run(gd_cmd(
+            "--export-" + profile.value,
+            preset_name,
+            f"../{path}/" + export_file + extension
+        ))
+    else:
+        init_dir("build/debug")
+        c.run(gd_cmd(
+            "--export-debug",
+            preset_name,
+            "../build/debug/vimdow.debug" + extension
+        ))
+        init_dir("build/release")
+        c.run(gd_cmd(
+            "--export-release",
+            preset_name,
+            "../build/release/vimdow.release" + extension
+        ))
+
+
+    
