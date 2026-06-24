@@ -7,4 +7,5 @@ requires-python = ">=3.13"
 dependencies = [
     "commented-configparser>=3.0.0",
     "invoke",
+    "python-dotenv>=1.2.2",
 ]
