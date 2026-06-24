@@ -103,7 +103,7 @@ jobs:
           EOF
 
       - name: Export standalone
-        uses: firebelley/godot-export@v7.0.0
+        uses: firebelley/godot-export@v8.0.0
         id: export
         with:
           godot_executable_download_url: "https://github.com/godotengine/godot/releases/download/4.6.2-stable/Godot_v4.6.2-stable_linux.x86_64.zip"
