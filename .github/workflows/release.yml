@@ -81,6 +81,7 @@ jobs:
           config/name="Vimdow"
           config/features=PackedStringArray("4.6.2", "Forward Plus")
           config/icon="res://icon.svg"
+          run/main_scene="res://addons/vimdow/vimdow_editor.tscn"
 
           [display]
 
