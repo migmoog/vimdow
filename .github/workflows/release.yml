@@ -49,6 +49,8 @@ jobs:
   release:
     needs: build_library
     runs-on: ubuntu-latest
+    env:
+      GODOT_VERSION: "4.6.2"
     permissions:
       contents: write
     steps:
@@ -106,9 +108,10 @@ jobs:
         uses: firebelley/godot-export@v8.0.0
         id: export
         with:
-          godot_executable_download_url: "https://github.com/godotengine/godot/releases/download/4.6.2-stable/Godot_v4.6.2-stable_linux.x86_64.zip"
-          godot_export_templates_download_url: "https://github.com/godotengine/godot/releases/download/4.6.2-stable/Godot_v4.6.2-stable_export_templates.tpz"
+          godot_executable_download_url: "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          godot_export_templates_download_url: "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
           relative_project_path: ./godot/
+          presets_to_export: ["vimdow-standalone-linux", "vimdow-standalone-win"]
           archive_output: true
           archive_root_folder: true
 
