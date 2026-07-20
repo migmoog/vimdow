@@ -35,10 +35,11 @@ pub struct NeovimProcess {
 
 impl NeovimProcess {
     pub fn new(program: &str, nvim_args: &[impl AsRef<OsStr>]) -> Result<Self, std::io::Error> {
-        let mut child_builder = Command::new(program);
+        let mut child_builder = Command::new(std::fs::canonicalize(program)?);
         child_builder.stdin(Stdio::piped()).stdout(Stdio::piped());
 
-        #[cfg(target_os = "windows")] {
+        #[cfg(target_os = "windows")]
+        {
             const CREATE_NO_WINDOW: u32 = 0x08000000;
             child_builder.creation_flags(CREATE_NO_WINDOW);
         }
