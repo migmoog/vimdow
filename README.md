@@ -6,8 +6,8 @@
 <div align="center">
     It's two things at once!
     <ul style="text-align: center; list-style-position: inside;">
-        <li> A <a href="https://neovim.io">Neovim</a> client based on godot </li>
-        <li> A <a href="https://godotengine.org">Godot</a> editor plugin that lets you use neovim </li>
+        <li> A <a href="https://Neovim.io">Neovim</a> client based on godot </li>
+        <li> A <a href="https://godotengine.org">Godot</a> editor plugin that lets you use Neovim </li>
     </ul>
 </div>
 
@@ -18,13 +18,13 @@
 
 ## About
 
-Tired of godot's in-house script editor? **Vimdow** can let you use the comfort of your own neovim config 
+Tired of godot's in-house script editor? **Vimdow** can let you use the comfort of your own Neovim config 
 to edit text for any file you want!
 
 Vimdow can be installed like a regular plugin off of the asset store, or
-it can be downloaded as a standalone neovim client for your system.
+it can be downloaded as a standalone Neovim client for your system.
 
-### What's neovim?
+### What's Neovim?
 
 If you don't know, [watch this](https://www.youtube.com/watch?v=c4OyfL5o7DU).
 
@@ -37,7 +37,7 @@ Vimdow aims to provide this accessibility to Godot developers!
 ### Project Goals / Features
 
 Vimdow provides a developer experience with:
-- A visually customizable neovim frontend
+- A visually customizable Neovim frontend
 - Portability, vimdow can work wherever Godot can
 - Integration that is seamless between both the Godot Editor and using Neovim on your own system
 - Non invasive integration into the project for teams of any size
@@ -47,11 +47,11 @@ Vimdow provides a developer experience with:
 **Requirements**: Neovim 0.11 or later.
 
 Vimdow only needs to know where Neovim's binary is located on your system to get working. By default both modes assume 
-that your on linux and set the path to `/usr/bin/nvim`
+that you have Neovim in your `PATH`
 
 ### Plugin mode
 
-#### Path to neovim
+#### Path to Neovim
 
 In `addons/vimdow`, there is a default file called `local.cfg`. It will have default settings. To start vimdow, you need to set the `path_to_nvim` key in the `[neovim]` section. You should also remove the `template=true` to remove the warning.
 
@@ -68,7 +68,7 @@ Keyboard shortcuts (such as font size) are located under `Editor Settings > Shor
 
 #### Lua plugin
 
-Vimdow is also a neovim plugin. The code for it is located in `addons/vimdow/lua`. In it is the `start.lua` script that is used on neovim startup with the `-S` flag. The other file is the configurations, the defaults of which are:
+Vimdow is also a Neovim plugin. The code for it is located in `addons/vimdow/lua`. In it is the `start.lua` script that is used on neovim startup with the `-S` flag. The other file is the configurations, the defaults of which are:
 ```lua
 {
 	-- Default keybindings for vimdow actions
@@ -99,7 +99,11 @@ Vimdow as a standalone client looks for a godot [ConfigFile](https://docs.godote
 ```cfg
 [neovim]
 
-path_to_nvim="/usr/bin/nvim"
+; delete this key or set it to false to remove warnings
+template = true
+
+; by default assumes nvim is in your path
+path_to_nvim="nvim"
 
 
 ; Overrides defaults in the plugin's theme resource.
