@@ -35,7 +35,10 @@ pub struct NeovimProcess {
 
 impl NeovimProcess {
     pub fn new(program: &str, nvim_args: &[impl AsRef<OsStr>]) -> Result<Self, std::io::Error> {
-        let mut child_builder = Command::new(std::fs::canonicalize(program)?);
+        let mut child_builder = match std::fs::canonicalize(program) {
+            Ok(path) => Command::new(path),
+            Err(_) => Command::new(program),
+        };
         child_builder.stdin(Stdio::piped()).stdout(Stdio::piped());
 
         #[cfg(target_os = "windows")]
