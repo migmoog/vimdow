@@ -24,11 +24,14 @@ class Platform:
     rust_target: str
     libfile: str
 
+    def __post_init__(self):
+        pass
+
     def target_flag(self) -> str:
         return f" --target {self.rust_target} "
 
-    def build(self, c: Context, profile: BuildProfile) -> list[str]:
-        tf = self.target_flag()
+    def build(self, c: Context, profile: BuildProfile, use_target_flag=True) -> list[str]:
+        tf = self.target_flag() if use_target_flag else ""
         profiles = {}
         match profile:
             case BuildProfile.DEBUG:

@@ -79,9 +79,9 @@ def build(c: Context, profile: BuildProfile = BuildProfile.DEBUG, platform: str 
     if platform:
         platforms = flag_to_platforms(platform)
         for p in platforms:
-            libfiles = p.build(c, profile)
+            libfiles = p.build(c, profile, use_target_flag=platform != SYSTEM)
     else: 
-        libfiles = current_platform.build(c, profile)
+        libfiles = current_platform.build(c, profile, use_target_flag=False)
 
     DST = "godot/addons/vimdow/bin"
     for src in libfiles:
