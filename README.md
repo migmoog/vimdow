@@ -119,4 +119,5 @@ italic = "/path/to/italic.ttf"
 
 ## Contributing
 
-Vimdow is open source and open to any and all contributions. If you need a quick and easy introduction to the steps of compilation and source code, check out [CONTRIBUTING.md]
+Vimdow is open source and open to any and all contributions. 
+If you need a quick and easy introduction to the steps of compilation and source code, check out [CONTRIBUTING.md](CONTRIBUTING.md)
