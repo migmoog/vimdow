@@ -33,9 +33,10 @@ pub struct NvimInput {
 impl NvimInput {
     pub fn apply_modifiers(&self, s: &str) -> String {
         let mut out = String::from("<");
-        for (n, _) in self.mods.iter_names() {
-            out.push(n.chars().nth(0).unwrap());
-            out.push('-');
+        if s != "lt"{
+            for (n, _) in self.mods.iter_names() {
+                out.push(n.chars().nth(0).unwrap()); out.push('-');
+            }
         }
         out.push_str(s);
         out.push('>');
@@ -67,7 +68,7 @@ impl ToString for NvimInput {
                     return String::new();
                 }
 
-                // keycodes default to caps for labels. 
+                // keycodes default to caps for labels.
                 // doing this to preserve cases because neovim differentiates between Alt events
                 // with case-sensitive characters.
                 if !self.mods.contains(Modifiers::SHIFT) {
