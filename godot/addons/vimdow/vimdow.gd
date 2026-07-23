@@ -15,7 +15,6 @@ var focus_shortcut: Shortcut
 
 const DEFAULT_SETTINGS = { }
 
-
 func _enter_tree() -> void:
 	if DisplayServer.get_name() == "headless": # CI/CD sanity check
 		print_debug("Skipping plugin initilization")
@@ -32,6 +31,8 @@ func _enter_tree() -> void:
 	EditorInterface.get_editor_main_screen().add_child(editor)
 	editor.client.neovim_request.connect(_on_neovim_request)
 	editor.call_deferred("start", PackedStringArray(["-S", "addons/vimdow/lua/start.lua"]))
+
+	get_viewport().gui_focus_changed.connect(_on_gui_focus_changed)
 
 	window_wrapper = Window.new()
 	add_child(window_wrapper)
@@ -68,6 +69,12 @@ func _enter_tree() -> void:
 	debugger.setup(editor)
 	add_debugger_plugin(debugger)
 
+func _on_gui_focus_changed(control: Control):
+	# Script editor steals focus when making edits to an already existing script
+	# so the VimdowEditor needs to steal it back
+	var se := EditorInterface.get_script_editor()
+	if editor.visible and se.is_ancestor_of(control):
+		editor.grab_focus()
 
 func _on_neovim_request(msgid: int, method: String, params: Array):
 	var m := method.lstrip('"').rstrip('"')
