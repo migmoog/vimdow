@@ -11,13 +11,55 @@ function Vimdow.drop_text (text, col, row)
 			local oldpos = vim.api.nvim_win_get_cursor(id)
 			-- moves the cursor to the clicked spot
 			vim.api.nvim_input_mouse("left", "press", "", 0, row, col)
-			vim.schedule(function()
+			vim.schedule(function ()
 				vim.api.nvim_paste(text, false, -1)
 				vim.api.nvim_win_set_cursor(id, oldpos)
 			end)
 			return
 		end
 	end
+end
+
+function Vimdow.open_builtin_script (path, source_code)
+	for _, i in pairs(vim.api.nvim_list_bufs()) do
+		if vim.api.nvim_buf_get_name(i) == path then
+			vim.api.nvim_win_set_buf(0, i)
+			return
+		end
+	end
+
+	local builtin_buf = vim.api.nvim_create_buf(true, false)
+	if builtin_buf == 0 then
+		error("Couldn't open builtin script: " .. path)
+		return
+	end
+
+	vim.bo[builtin_buf].buftype = "acwrite"
+	vim.bo[builtin_buf].filetype = "gdscript"
+	vim.bo[builtin_buf].swapfile = false
+	vim.api.nvim_buf_set_name(builtin_buf, path)
+	local lines = vim.split(source_code, "\n", { plain = true })
+	vim.api.nvim_buf_set_lines(builtin_buf, 0, -1, true, lines)
+	vim.api.nvim_create_autocmd("BufWriteCmd", {
+		buffer = builtin_buf,
+		callback = function (ev)
+			local source_lines = vim.api.nvim_buf_get_lines(ev.buf, 0, -1, false)
+			local new_source_code = ""
+			for _, line in pairs(source_lines) do
+				new_source_code = new_source_code .. line .. "\n"
+			end
+			vim.fn.rpcrequest(1, "save_builtin_script", path, new_source_code)
+			vim.bo[ev.buf].modified = false
+		end,
+	})
+	vim.api.nvim_create_autocmd("BufDelete", {
+		buffer = builtin_buf,
+		callback = function ()
+			vim.fn.rpcrequest(1, "close_builtin_script", path)
+		end,
+	})
+	vim.api.nvim_win_set_buf(0, builtin_buf)
+	vim.api.nvim_exec_autocmds("FileType", { buffer = builtin_buf })
 end
 
 function Vimdow.setup (opts)

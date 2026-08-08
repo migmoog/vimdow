@@ -62,8 +62,9 @@ func _ready() -> void:
 	conf = ConfigFile.new()
 	if _is_standalone():
 		conf_path = (
-				OS.get_environment("VIMDOW_CONFIG_PATH")
-				if OS.has_environment("VIMDOW_CONFIG_PATH") else "user://vimdow.cfg"
+			OS.get_environment("VIMDOW_CONFIG_PATH")
+			if OS.has_environment("VIMDOW_CONFIG_PATH")
+			else "user://vimdow.cfg"
 		)
 		if conf.load(conf_path) != OK:
 			conf.set_value(MAIN_SECTION, "path_to_nvim", "/usr/bin/nvim")
@@ -88,7 +89,10 @@ func _exit_tree() -> void:
 
 func start(extra_nvim_args := PackedStringArray()) -> void:
 	if conf.get_value(MAIN_SECTION, "template", false):
-		show_error("Your config file has \"template=true\" in the neovim section. Remove that value to actually use your config in %s" % conf_path)
+		show_error(
+			"Your config file has \"template=true\" in the neovim section. Remove that value to actually use your config in %s"
+			% conf_path
+		)
 		return
 
 	# Debug setting for logging all messagepack rpc's
@@ -113,11 +117,7 @@ func start(extra_nvim_args := PackedStringArray()) -> void:
 			var bytes = FileAccess.get_file_as_bytes(path)
 			font_file.data = bytes
 
-			theme.set_font(
-				font_property,
-				"VimdowEditor",
-				font_file,
-			)
+			theme.set_font(font_property, "VimdowEditor", font_file)
 
 	if _is_standalone():
 		var r = get_tree().root
@@ -143,14 +143,7 @@ func start(extra_nvim_args := PackedStringArray()) -> void:
 	var initial_size := get_editor_grid_size()
 	client.request(
 		"nvim_ui_attach",
-		[
-			initial_size.x,
-			initial_size.y,
-			{
-				"ext_linegrid": true,
-				"rgb": true,
-			},
-		],
+		[initial_size.x, initial_size.y, { "ext_linegrid": true, "rgb": true }],
 	)
 	attached = true # may come up with a better way to assert this
 
@@ -170,10 +163,18 @@ func _gui_input(event: InputEvent) -> void:
 	if _acceptable_key(event):
 		get_viewport().set_input_as_handled()
 		if increase_fontsize_shortcut.matches_event(event):
-			theme.set_font_size("font_size", "VimdowEditor", theme.get_font_size("font_size", "VimdowEditor") + 1)
+			theme.set_font_size(
+				"font_size",
+				"VimdowEditor",
+				theme.get_font_size("font_size", "VimdowEditor") + 1,
+			)
 			try_resize()
 		elif decrease_fontsize_shortcut.matches_event(event):
-			theme.set_font_size("font_size", "VimdowEditor", theme.get_font_size("font_size", "VimdowEditor") - 1)
+			theme.set_font_size(
+				"font_size",
+				"VimdowEditor",
+				theme.get_font_size("font_size", "VimdowEditor") - 1,
+			)
 			try_resize()
 		else:
 			_inputs_buffer.append(event)
@@ -194,11 +195,7 @@ func _process(_delta: float) -> void:
 		if not _mouse_buffer.is_empty():
 			var char_size := get_theme_font("normal", "VimdowEditor") \
 					.get_char_size(ord(' '), get_theme_font_size("font_size", "VimdowEditor"))
-			client.flush_mouse_inputs(
-				grid_index,
-				_mouse_buffer,
-				get_cell_size(),
-			)
+			client.flush_mouse_inputs(grid_index, _mouse_buffer, get_cell_size())
 
 
 func _notification(what: int) -> void:
@@ -223,19 +220,18 @@ func _can_drop_data(at_position: Vector2, data: Variant) -> bool:
 func _drop_data(at_position: Vector2, data: Variant) -> void:
 	var grid_pos = at_position / get_cell_size()
 	var text
-	var bracket_types = {
-		left = '"',
-		right = '"',
-	}
+	var bracket_types = { left = '"', right = '"' }
 	match data.type:
 		"files":
 			const LUA_ESCAPE_QUOTE = '\\"'
-			text = ", ".join(Array(data.files).map(
-				func(path):
-					return LUA_ESCAPE_QUOTE + \
-							path + \
-							LUA_ESCAPE_QUOTE
-			))
+			text = ", ".join(
+				Array(data.files).map(
+					func(path):
+						return LUA_ESCAPE_QUOTE + \
+								path + \
+								LUA_ESCAPE_QUOTE,
+				)
+			)
 		"nodes":
 			var gds_node_paths = []
 			for node_path in data.nodes:
@@ -246,21 +242,28 @@ func _drop_data(at_position: Vector2, data: Variant) -> void:
 				gds_node_paths.push_back(node)
 
 			if Input.is_key_pressed(KEY_CTRL):
-				text = "\n".join(gds_node_paths.map(
-					func(n):
-						return "@onready var %s = %s" % [
-							n.name.to_snake_case(),
-							_node_to_gds_path(data.scene_root, n),
-						]
-				))
+				text = "\n".join(
+					gds_node_paths.map(
+						func(n):
+							return "@onready var %s = %s" % [
+								n.name.to_snake_case(),
+								_node_to_gds_path(data.scene_root, n),
+							],
+					)
+				)
 				bracket_types.left = '[['
 				bracket_types.right = ']]'
 			else:
 				text = ", ".join(
-					gds_node_paths.map(func(n): return _node_to_gds_path(data.scene_root, n)),
+					gds_node_paths.map(
+						func(n):
+							return _node_to_gds_path(data.scene_root, n),
+					),
 				)
 		"obj_property":
-			text = (str(data.value) if Input.is_key_pressed(KEY_ALT) else '\\"' + data.property + '\\"')
+			text = (
+				str(data.value) if Input.is_key_pressed(KEY_ALT) else '\\"' + data.property + '\\"'
+			)
 		_:
 			push_warning("Unimplemented drop: %s" % str(data))
 
@@ -268,13 +271,8 @@ func _drop_data(at_position: Vector2, data: Variant) -> void:
 		client.request(
 			"nvim_exec_lua",
 			[
-				"Vimdow.drop_text(%s%s%s, %d, %d)" % [
-					bracket_types.left,
-					text,
-					bracket_types.right,
-					grid_pos.x,
-					grid_pos.y,
-				],
+				"Vimdow.drop_text(%s%s%s, %d, %d)"
+				% [bracket_types.left, text, bracket_types.right, grid_pos.x, grid_pos.y],
 				[],
 			],
 		)
@@ -333,9 +331,21 @@ func try_resize() -> void:
 
 ## Opens a file in vimdow
 func open_file(path: String, line: int = -1):
-	if attached:
-		var cmd = ("e +%d " % line if line > 0 else "e ") + path
-		client.request("nvim_command", [cmd])
+	assert(attached)
+	var cmd = ("e +%d " % line if line > 0 else "e ") + path
+	client.request("nvim_command", [cmd])
+
+
+func open_builtin_script(path: String, source_code: String):
+	assert(attached)
+	# print_debug(path)
+	# print_debug(source_code)
+	var lua_str = "Vimdow.open_builtin_script(\"%s\", [[%s]])" % [path, source_code]
+	# print_debug( lua_str )
+	client.request(
+		"nvim_exec_lua",
+		[lua_str, []],
+	)
 
 
 ## Instructs the lua plugin to clear all breakpoints. Can optionally specify the buffer to clear
@@ -348,7 +358,7 @@ func clear_breakpoints(path = ""):
 func set_breakpoint(path: String, line: int, enabled: bool):
 	assert(attached)
 	var lua_str = "Vimdow.set_breakpoint(\"%s\", %d, %s, true)" % [path, line, enabled]
-	client.request("nvim_exec_lua", [lua_str])
+	client.request("nvim_exec_lua", [lua_str, []])
 
 #endregion
 
@@ -363,13 +373,7 @@ func flush():
 			for e in event:
 				callv(event_name, e)
 		elif dbg:
-			_redraw_events.store_line(
-				"[%d] %s: %s" % [
-					i,
-					event_name,
-					JSON.stringify(event),
-				],
-			)
+			_redraw_events.store_line("[%d] %s: %s" % [i, event_name, JSON.stringify(event)])
 		i += 1
 	if dbg:
 		_redraw_events.store_line("###FLUSHED###")
@@ -398,24 +402,12 @@ func _add_hl(hl_id: int, attr: Dictionary):
 
 
 func default_colors_set(rgb_fg: int, rgb_bg: int, rgb_sp: int, _cterm_fg, _cterm_bg):
-	_add_hl(
-		0,
-		{
-			foreground = rgb_fg,
-			background = rgb_bg,
-			special = rgb_sp,
-		},
-	)
+	_add_hl(0, { foreground = rgb_fg, background = rgb_bg, special = rgb_sp })
 
 	$ColorRect.color = hl[0].background
 
 
-func hl_attr_define(
-		id: int,
-		rgb_attr: Dictionary,
-		_cterm_attr: Dictionary,
-		_info: Array,
-):
+func hl_attr_define(id: int, rgb_attr: Dictionary, _cterm_attr: Dictionary, _info: Array):
 	_add_hl(id, rgb_attr)
 
 
@@ -462,14 +454,14 @@ func grid_resize(grid: int, width: int, height: int):
 # this shouldn't be sent if ext_multigrid == false.
 # might be a bug but have this to just get it out of logs
 func win_viewport(
-		_grid: int,
-		_win: int,
-		_topline: int,
-		_botline: int,
-		_curline: int,
-		_curcol: int,
-		_line_count: int,
-		_scroll_delta: int,
+	_grid: int,
+	_win: int,
+	_topline: int,
+	_botline: int,
+	_curline: int,
+	_curcol: int,
+	_line_count: int,
+	_scroll_delta: int,
 ):
 	return
 
@@ -517,15 +509,7 @@ func grid_cursor_goto(grid: int, row: int, col: int):
 	vimdow_window.cursor.y = row
 
 
-func grid_scroll(
-		grid: int,
-		top: int,
-		bot: int,
-		left: int,
-		right: int,
-		rows: int,
-		_cols: int,
-):
+func grid_scroll(grid: int, top: int, bot: int, left: int, right: int, rows: int, _cols: int):
 	_grid_assert(grid)
 
 	var lines := []
@@ -543,7 +527,9 @@ func grid_scroll(
 		if row < top or row >= bot:
 			continue
 		var dst_line = vimdow_window.get_line(row)
-		var line = dst_line.substr(0, left) + src_line.substr(left, right - left) + dst_line.substr(right)
+		var line = dst_line.substr(0, left) + src_line.substr(left, right - left) + dst_line.substr(
+			right
+		)
 		vimdow_window.set_line(row, line)
 		for i in range(left, right):
 			$VimdowWindow/Highlighter.hl_regions[row][i] = src_regions[i]
@@ -565,14 +551,7 @@ func _initialize_todos():
 
 
 func _log_options():
-	_option_set.store_string(
-		JSON.stringify(
-			options,
-			"\t",
-			false,
-			true,
-		) + ",\n\n",
-	)
+	_option_set.store_string(JSON.stringify(options, "\t", false, true) + ",\n\n")
 	_option_set.flush()
 
 
@@ -583,18 +562,9 @@ func _log_responses(msgid: int, error: Variant, result: Variant) -> void:
 ## Forces the editor to follow the same size
 ## as the viewport holding it and add it as a child
 func lock_to_window(v: Window):
-	assert(
-		not get_parent() is Container,
-		"Cannot resize while attached to a container",
-	)
-	assert(
-		v.is_ancestor_of(self),
-		"Editor must be child of the viewport its locked to",
-	)
-	assert(
-		viewport_lock == null,
-		"Editor can only lock to one viewport at a time",
-	)
+	assert(not get_parent() is Container, "Cannot resize while attached to a container")
+	assert(v.is_ancestor_of(self), "Editor must be child of the viewport its locked to")
+	assert(viewport_lock == null, "Editor can only lock to one viewport at a time")
 	viewport_lock = v
 	v.size_changed.connect(_on_viewport_lock_size_changed)
 	_on_viewport_lock_size_changed()
@@ -603,10 +573,7 @@ func lock_to_window(v: Window):
 ## Removes the editor from the current viewport its locked to
 ## and unattach its size change signal
 func unlock_from_window():
-	assert(
-		viewport_lock != null,
-		"Not locked to any viewport",
-	)
+	assert(viewport_lock != null, "Not locked to any viewport")
 	viewport_lock.size_changed.disconnect(_on_viewport_lock_size_changed)
 	viewport_lock = null
 
