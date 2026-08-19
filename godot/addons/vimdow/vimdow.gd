@@ -23,11 +23,12 @@ func _enter_tree() -> void:
 		print_debug("Skipping plugin initilization")
 		return
 
+	var editor_settings := EditorInterface.get_editor_settings()
 	for setting in DEFAULT_SETTINGS:
 		var full_setting = "vimdow/" + setting
-		if not ProjectSettings.has_setting(full_setting):
-			ProjectSettings.set_setting(full_setting, DEFAULT_SETTINGS[setting])
-		ProjectSettings.set_initial_value(full_setting, DEFAULT_SETTINGS[setting])
+		if not editor_settings.has_setting(full_setting):
+			editor_settings.set_setting(full_setting, DEFAULT_SETTINGS[setting])
+		editor_settings.set_initial_value(full_setting, DEFAULT_SETTINGS[setting], false)
 
 	editor = EDITOR.instantiate()
 	editor.conf_path = "res://addons/vimdow/local.cfg"
@@ -146,14 +147,15 @@ func _on_main_screen_changed(screen_name: String):
 
 
 func _on_scene_changed(scene_root: Node) -> void:
-	if not ProjectSettings.get_setting("vimdow/auto_open_root_script", true):
+	var editor_settings := EditorInterface.get_editor_settings()
+	if not editor_settings.get_setting("vimdow/auto_open_root_script"):
 		return
 	if scene_root == null:
 		return
 	var script = scene_root.get_script()
 	if script and script.resource_path.begins_with("res://"):
 		editor.open_file(ProjectSettings.globalize_path(script.resource_path))
-		if ProjectSettings.get_setting("vimdow/auto_focus_on_scene_change", true):
+		if editor_settings.get_setting("vimdow/auto_focus_on_scene_change"):
 			editor.grab_focus()
 
 
