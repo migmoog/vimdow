@@ -13,18 +13,22 @@ var debugger: VimdowDebugger
 var pop_out_shortcut: Shortcut
 var focus_shortcut: Shortcut
 
-const DEFAULT_SETTINGS = { }
+const DEFAULT_SETTINGS = {
+	"auto_open_root_script": true,
+	"auto_focus_on_scene_change": true,
+}
 
 func _enter_tree() -> void:
 	if DisplayServer.get_name() == "headless": # CI/CD sanity check
 		print_debug("Skipping plugin initilization")
 		return
 
+	var editor_settings := EditorInterface.get_editor_settings()
 	for setting in DEFAULT_SETTINGS:
 		var full_setting = "vimdow/" + setting
-		if not ProjectSettings.has_setting(full_setting):
-			ProjectSettings.set_setting(full_setting, DEFAULT_SETTINGS[setting])
-		ProjectSettings.set_initial_value(full_setting, DEFAULT_SETTINGS[setting])
+		if not editor_settings.has_setting(full_setting):
+			editor_settings.set_setting(full_setting, DEFAULT_SETTINGS[setting])
+		editor_settings.set_initial_value(full_setting, DEFAULT_SETTINGS[setting], false)
 
 	editor = EDITOR.instantiate()
 	editor.conf_path = "res://addons/vimdow/local.cfg"
@@ -64,6 +68,7 @@ func _enter_tree() -> void:
 	_make_visible(false)
 
 	main_screen_changed.connect(_on_main_screen_changed)
+	scene_changed.connect(_on_scene_changed)
 
 	debugger = VimdowDebugger.new()
 	debugger.setup(editor)
@@ -97,6 +102,8 @@ func _on_neovim_request(msgid: int, method: String, params: Array):
 
 
 func _exit_tree() -> void:
+	if scene_changed.is_connected(_on_scene_changed):
+		scene_changed.disconnect(_on_scene_changed)
 	if editor:
 		editor.client.kill_process()
 		editor.queue_free()
@@ -137,6 +144,19 @@ func _on_editor_window_close():
 func _on_main_screen_changed(screen_name: String):
 	if screen_name != _get_plugin_name():
 		_last_main_screen = screen_name
+
+
+func _on_scene_changed(scene_root: Node) -> void:
+	var editor_settings := EditorInterface.get_editor_settings()
+	if not editor_settings.get_setting("vimdow/auto_open_root_script"):
+		return
+	if scene_root == null:
+		return
+	var script = scene_root.get_script()
+	if script and script.resource_path.begins_with("res://"):
+		editor.open_file(ProjectSettings.globalize_path(script.resource_path))
+		if editor_settings.get_setting("vimdow/auto_focus_on_scene_change"):
+			editor.grab_focus()
 
 
 func _handles(object: Object) -> bool:
