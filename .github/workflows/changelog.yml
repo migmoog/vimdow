@@ -1,0 +1,13 @@
+name: Update Changelog
+
+on:
+  push:
+    tags:
+      - "v*"
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  
