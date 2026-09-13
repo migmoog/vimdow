@@ -13,12 +13,6 @@ class BuildProfile(StrEnum):
     DEBUG = "debug"
     RELEASE = "release"
 
-    def get_list(self):
-        if self == BuildProfile.BOTH:
-            return ["debug", "release"]
-        else:
-            return [self.value]
-
 @dataclass
 class Platform:
     rust_target: str
@@ -42,11 +36,15 @@ class Platform:
                 profiles["debug"] = cargo_cmd("build", tf)
                 profiles["release"] = cargo_cmd("build", tf, "--release")
 
-        out = []
+        out = {}
         for key, value in profiles.items():
             print(f"Building for {key} target {self.rust_target}")
             c.run(value)
-            out.append(f"rust/target/{key}/{self.libfile}")
+
+            if use_target_flag:
+                out[key] = f"rust/target/{self.rust_target}/{key}/{self.libfile}"
+            else:
+                out[key] = f"rust/target/{key}/{self.libfile}"
         return out
 
 TARGETS = {

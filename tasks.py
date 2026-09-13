@@ -81,13 +81,12 @@ def build(c: Context, profile: BuildProfile = BuildProfile.DEBUG, platform: str 
         libfiles = current_platform.build(c, profile, use_target_flag=False)
 
     DST = "godot/addons/vimdow/bin"
-    for src in libfiles:
-        for dst_dir in profile.get_list():
-            destination = os.path.join(DST, dst_dir)
-            destination = os.path.join(destination, os.path.basename(src))
-            print(f"Copying {src} to {destination}")
-            os.makedirs(os.path.dirname(destination), exist_ok=True)
-            copy(src, destination)
+    for dst_dir, src in libfiles.items():
+        destination = os.path.join(DST, dst_dir)
+        destination = os.path.join(destination, os.path.basename(src))
+        print(f"Copying {src} to {destination}")
+        os.makedirs(os.path.dirname(destination), exist_ok=True)
+        copy(src, destination)
 
 
 @task(
