@@ -119,10 +119,17 @@ def editor(c, nobuild=False, profile: BuildProfile = BuildProfile.DEBUG, platfor
 
 
 @task(
-    pre = [call(build, profile=BuildProfile.BOTH, platform="lwm")],
-    aliases = ["ep"]
+    help = {
+        "thistarget" :  "Build the platform for only the native target",
+    },
+    aliases = ["ep"],
 )
-def export_plugin(c):
+def export_plugin(c, thistarget=False):
+    if not thistarget:
+        build(c, BuildProfile.BOTH, "lwm")
+    else:
+        build(c, BuildProfile.BOTH)
+
     print("Setting defaults for plugin")
     local_config = commentedconfigparser.CommentedConfigParser()
     LOCAL_CFG_PATH = "godot/addons/vimdow/local.cfg"
